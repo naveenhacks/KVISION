@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AuthContext } from '../../context/AuthContext';
-import { HomeworkContext } from '../../context/HomeworkContext';
-import { NotificationContext } from '../../context/NotificationContext';
-import { User, UserRole, Homework, Notification } from '../../types';
-import AdminMessaging from './messaging/AdminMessaging';
-import Alert from '../common/Alert';
-import AdminHomepageManager from './admin/HomepageManager';
-import ConfirmationModal from '../common/ConfirmationModal';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { HomeworkContext } from '../../context/HomeworkContext.tsx';
+import { NotificationContext } from '../../context/NotificationContext.tsx';
+import { User, UserRole, Homework, Notification } from '../../types.ts';
+import AdminMessaging from './messaging/AdminMessaging.tsx';
+import Alert from '../common/Alert.tsx';
+import AdminHomepageManager from './admin/HomepageManager.tsx';
+import ConfirmationModal from '../common/ConfirmationModal.tsx';
 import { 
     Users, UserPlus, Trash2, Edit, X, Copy, Check, CheckCircle, ShieldAlert, 
     LayoutDashboard, GraduationCap, Presentation, BookMarked, MessageSquare, Bell, Settings, Menu, Search,

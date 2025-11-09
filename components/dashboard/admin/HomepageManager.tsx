@@ -2,12 +2,12 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 // FIX: Import LandingPageContextType
-import { LandingPageContext, LandingPageContextType } from '../../../context/LandingPageContext';
-import { AuthContext } from '../../../context/AuthContext';
-import { TextBlock, Stat, PrincipalInfo, HomepageAnnouncement, GalleryImage, User, ContactInfo } from '../../../types';
+import { LandingPageContext, LandingPageContextType } from '../../../context/LandingPageContext.tsx';
+import { AuthContext } from '../../../context/AuthContext.tsx';
+import { TextBlock, Stat, PrincipalInfo, HomepageAnnouncement, GalleryImage, User, ContactInfo } from '../../../types.ts';
 import { Save, Edit, Trash2, PlusCircle, Check, X, Eye, Image as ImageIcon, Megaphone, BarChart2, UserCircle, UploadCloud, Contact } from 'lucide-react';
-import Alert from '../../common/Alert';
-import ConfirmationModal from '../../common/ConfirmationModal';
+import Alert from '../../common/Alert.tsx';
+import ConfirmationModal from '../../common/ConfirmationModal.tsx';
 
 const contentVariants = {
     hidden: { opacity: 0, y: 10 },
@@ -61,6 +61,340 @@ const EditableTextBlock: React.FC<{
             ) : (
                 <p className="text-sm text-brand-silver-gray">{data.content}</p>
             )}
+        </div>
+    );
+};
+
+// FIX: Define missing components
+const GeneralInfoManager: React.FC<{
+    info: PrincipalInfo;
+    vision: TextBlock;
+    mission: TextBlock;
+    coreValues: TextBlock;
+    onSaveInfo: (info: Partial<PrincipalInfo>) => void;
+    onSaveBlock: (key: 'vision' | 'mission' | 'coreValues', data: TextBlock) => void;
+    setAlert: (alert: { message: string; type: 'success' | 'error' } | null) => void;
+}> = ({ info, vision, mission, coreValues, onSaveInfo, onSaveBlock, setAlert }) => {
+    const [principalInfo, setPrincipalInfo] = useState(info);
+    const [isEditingPrincipal, setIsEditingPrincipal] = useState(false);
+
+    useEffect(() => {
+        setPrincipalInfo(info);
+    }, [info]);
+
+    const handlePrincipalSave = () => {
+        onSaveInfo(principalInfo);
+        setIsEditingPrincipal(false);
+        setAlert({ message: 'Principal info updated.', type: 'success' });
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white/5 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="font-bold text-lg text-white">Principal's Message</h3>
+                    {!isEditingPrincipal ? (
+                        <button onClick={() => setIsEditingPrincipal(true)} className="p-2 text-brand-silver-gray hover:text-white"><Edit size={18} /></button>
+                    ) : (
+                        <div className="flex space-x-2">
+                             <button onClick={() => { setIsEditingPrincipal(false); setPrincipalInfo(info); }} className="p-2 text-brand-silver-gray hover:text-white"><X size={18} /></button>
+                            <button onClick={handlePrincipalSave} className="p-2 text-green-400 hover:text-white"><Check size={18} /></button>
+                        </div>
+                    )}
+                </div>
+                {isEditingPrincipal ? (
+                     <div className="space-y-2">
+                        <label className="text-xs text-brand-silver-gray">Name</label>
+                        <input type="text" value={principalInfo.name} onChange={e => setPrincipalInfo({ ...principalInfo, name: e.target.value })} className="w-full input-field" />
+                        <label className="text-xs text-brand-silver-gray">Image URL</label>
+                        <input type="text" value={principalInfo.imageUrl} onChange={e => setPrincipalInfo({ ...principalInfo, imageUrl: e.target.value })} className="w-full input-field" />
+                        <label className="text-xs text-brand-silver-gray">Message</label>
+                        <textarea value={principalInfo.message} onChange={e => setPrincipalInfo({ ...principalInfo, message: e.target.value })} rows={4} className="w-full input-field"></textarea>
+                    </div>
+                ) : (
+                    <div className="flex items-start space-x-4">
+                        <img src={principalInfo.imageUrl} alt={principalInfo.name} className="w-24 h-24 rounded-full object-cover"/>
+                        <div>
+                            <p className="font-bold text-white">{principalInfo.name}</p>
+                            <p className="text-sm text-brand-silver-gray italic">"{principalInfo.message}"</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+            <EditableTextBlock sectionKey="vision" block={vision} onSave={onSaveBlock} />
+            <EditableTextBlock sectionKey="mission" block={mission} onSave={onSaveBlock} />
+            <EditableTextBlock sectionKey="coreValues" block={coreValues} onSave={onSaveBlock} />
+        </div>
+    );
+};
+
+const ContactInfoManager: React.FC<{
+    contactInfo: ContactInfo;
+    onSave: (info: ContactInfo) => void;
+    setAlert: (alert: { message: string; type: 'success' | 'error' } | null) => void;
+}> = ({ contactInfo, onSave, setAlert }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [data, setData] = useState(contactInfo);
+
+    useEffect(() => {
+        setData(contactInfo);
+    }, [contactInfo]);
+
+    const handleSave = () => {
+        onSave(data);
+        setIsEditing(false);
+        setAlert({ message: 'Contact info updated.', type: 'success' });
+    };
+
+    const handleCancel = () => {
+        setData(contactInfo);
+        setIsEditing(false);
+    };
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setData({ ...data, [e.target.name]: e.target.value });
+    };
+
+    return (
+        <div className="bg-white/5 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg text-white">Contact Information</h3>
+                {!isEditing ? (
+                    <button onClick={() => setIsEditing(true)} className="p-2 text-brand-silver-gray hover:text-white"><Edit size={18} /></button>
+                ) : (
+                    <div className="flex space-x-2">
+                        <button onClick={handleCancel} className="p-2 text-brand-silver-gray hover:text-white"><X size={18} /></button>
+                        <button onClick={handleSave} className="p-2 text-green-400 hover:text-white"><Check size={18} /></button>
+                    </div>
+                )}
+            </div>
+            {isEditing ? (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input name="schoolName" value={data.schoolName} onChange={handleChange} className="input-field" placeholder="School Name" />
+                    <input name="address" value={data.address} onChange={handleChange} className="input-field" placeholder="Address" />
+                    <input name="email" value={data.email} onChange={handleChange} className="input-field" placeholder="Email" />
+                    <input name="phone" value={data.phone} onChange={handleChange} className="input-field" placeholder="Phone" />
+                    <input name="website" value={data.website} onChange={handleChange} className="input-field md:col-span-2" placeholder="Website" />
+                 </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    {Object.entries(data).map(([key, value]) => (
+                        <div key={key}>
+                            <p className="capitalize text-xs text-brand-silver-gray">{key.replace(/([A-Z])/g, ' $1')}</p>
+                            <p className="text-white">{value}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const StatsManager: React.FC<{
+    stats: Stat[];
+    onSave: (stats: Stat[]) => void;
+    setAlert: (alert: { message: string; type: 'success' | 'error' } | null) => void;
+}> = ({ stats, onSave, setAlert }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentStats, setCurrentStats] = useState(stats);
+    
+    useEffect(() => {
+        setCurrentStats(stats);
+    }, [stats]);
+
+    const handleStatChange = (id: string, field: 'label' | 'value', value: string | number) => {
+        setCurrentStats(currentStats.map(stat => stat.id === id ? { ...stat, [field]: value } : stat));
+    };
+
+    const handleSave = () => {
+        onSave(currentStats);
+        setIsEditing(false);
+        setAlert({ message: 'Stats updated.', type: 'success' });
+    };
+
+    return (
+        <div className="bg-white/5 p-4 rounded-lg">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg text-white">School Statistics</h3>
+                 {!isEditing ? (
+                    <button onClick={() => setIsEditing(true)} className="p-2 text-brand-silver-gray hover:text-white"><Edit size={18} /></button>
+                ) : (
+                    <div className="flex space-x-2">
+                        <button onClick={() => { setIsEditing(false); setCurrentStats(stats); }} className="p-2 text-brand-silver-gray hover:text-white"><X size={18} /></button>
+                        <button onClick={handleSave} className="p-2 text-green-400 hover:text-white"><Check size={18} /></button>
+                    </div>
+                )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {currentStats.map(stat => (
+                    <div key={stat.id} className="bg-white/10 p-3 rounded-md">
+                        {isEditing ? (
+                            <div className="space-y-1">
+                                <input type="text" value={stat.label} onChange={e => handleStatChange(stat.id, 'label', e.target.value)} className="w-full input-field text-sm p-1" />
+                                <input type="number" value={stat.value} onChange={e => handleStatChange(stat.id, 'value', parseInt(e.target.value, 10))} className="w-full input-field text-lg font-bold p-1" />
+                            </div>
+                        ) : (
+                             <div>
+                                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                                <p className="text-sm text-brand-silver-gray">{stat.label}</p>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const AnnouncementsManager: React.FC<{
+    announcements: HomepageAnnouncement[];
+    onAdd: (announcement: Omit<HomepageAnnouncement, 'id'>) => void;
+    onDelete: (id: string) => Promise<void>;
+    user: User;
+    setAlert: (alert: { message: string; type: 'success' | 'error' } | null) => void;
+}> = ({ announcements, onAdd, onDelete, user, setAlert }) => {
+    const [newAnnouncement, setNewAnnouncement] = useState({ title: '', content: '' });
+    const [itemToDelete, setItemToDelete] = useState<HomepageAnnouncement | null>(null);
+
+    const handleAdd = () => {
+        if (!newAnnouncement.title || !newAnnouncement.content) {
+            setAlert({ message: 'Title and content are required.', type: 'error' });
+            return;
+        }
+        onAdd({
+            ...newAnnouncement,
+            date: new Date().toISOString(),
+            status: 'approved',
+            submittedBy: user.id,
+            authorName: user.name,
+        });
+        setNewAnnouncement({ title: '', content: '' });
+        setAlert({ message: 'Announcement added.', type: 'success' });
+    };
+
+    const handleDelete = async () => {
+        if (!itemToDelete) return;
+        await onDelete(itemToDelete.id);
+        setAlert({ message: 'Announcement deleted.', type: 'success' });
+        setItemToDelete(null);
+    };
+
+    const approvedAnnouncements = announcements.filter(a => a.status === 'approved');
+
+    return (
+        <div className="space-y-6">
+             <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={handleDelete} title="Delete Announcement" message={`Are you sure you want to delete "${itemToDelete?.title}"?`} />
+            <div className="bg-white/5 p-4 rounded-lg space-y-3">
+                <h3 className="font-bold text-lg text-white">Add New Announcement</h3>
+                <input type="text" placeholder="Title" value={newAnnouncement.title} onChange={e => setNewAnnouncement({ ...newAnnouncement, title: e.target.value })} className="w-full input-field" />
+                <textarea placeholder="Content" value={newAnnouncement.content} onChange={e => setNewAnnouncement({ ...newAnnouncement, content: e.target.value })} rows={3} className="w-full input-field"></textarea>
+                <button onClick={handleAdd} className="px-4 py-2 bg-brand-neon-purple text-white rounded-lg flex items-center space-x-2"><PlusCircle size={18} /><span>Add</span></button>
+            </div>
+             <div className="bg-white/5 p-4 rounded-lg">
+                <h3 className="font-bold text-lg text-white mb-3">Manage Announcements</h3>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {approvedAnnouncements.map(ann => (
+                        <div key={ann.id} className="bg-white/10 p-3 rounded-md flex justify-between items-start">
+                           <div>
+                             <p className="font-semibold text-white">{ann.title}</p>
+                             <p className="text-sm text-brand-silver-gray">{ann.content}</p>
+                             <p className="text-xs text-gray-500 mt-1">{new Date(ann.date).toLocaleDateString()}</p>
+                           </div>
+                           <button onClick={() => setItemToDelete(ann)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-md flex-shrink-0"><Trash2 size={16}/></button>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const GalleryManager: React.FC<{
+    images: GalleryImage[];
+    onAdd: (image: Omit<GalleryImage, 'id'>) => void;
+    onDelete: (id: string) => Promise<void>;
+    user: User;
+    setAlert: (alert: { message: string; type: 'success' | 'error' } | null) => void;
+}> = ({ images, onAdd, onDelete, user, setAlert }) => {
+    const [newImage, setNewImage] = useState<{ src: string, alt: string } | null>(null);
+    const [altText, setAltText] = useState('');
+    const [itemToDelete, setItemToDelete] = useState<GalleryImage | null>(null);
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                setNewImage({ src: event.target?.result as string, alt: '' });
+                setAltText(file.name.split('.')[0]); // Default alt text
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleAdd = () => {
+        if (!newImage || !altText) {
+            setAlert({ message: 'Image and description are required.', type: 'error' });
+            return;
+        }
+        onAdd({
+            src: newImage.src,
+            alt: altText,
+            status: 'approved',
+            submittedBy: user.id,
+            authorName: user.name,
+        });
+        setNewImage(null);
+        setAltText('');
+        setAlert({ message: 'Image added.', type: 'success' });
+    };
+
+    const handleDelete = async () => {
+        if (!itemToDelete) return;
+        await onDelete(itemToDelete.id);
+        setAlert({ message: 'Image deleted.', type: 'success' });
+        setItemToDelete(null);
+    };
+    
+    const approvedImages = images.filter(i => i.status === 'approved');
+
+    return (
+        <div className="space-y-6">
+            <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={handleDelete} title="Delete Image" message={`Are you sure you want to delete this image?`} />
+            <div className="bg-white/5 p-4 rounded-lg space-y-3">
+                <h3 className="font-bold text-lg text-white">Add New Image</h3>
+                <div className="relative flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/20 rounded-lg cursor-pointer bg-white/5 hover:bg-white/10">
+                    <input type="file" onChange={handleFileChange} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"/>
+                    {newImage ? (
+                        <img src={newImage.src} alt="preview" className="max-h-32 rounded-md" />
+                    ) : (
+                         <>
+                            <UploadCloud size={32} className="text-brand-light-purple" />
+                            <p className="mt-2 text-sm text-brand-silver-gray">Click to upload image</p>
+                         </>
+                    )}
+                </div>
+                {newImage && (
+                    <div className="space-y-2">
+                         <input type="text" placeholder="Image description (alt text)" value={altText} onChange={e => setAltText(e.target.value)} className="w-full input-field" />
+                         <button onClick={handleAdd} className="px-4 py-2 bg-brand-neon-purple text-white rounded-lg flex items-center space-x-2"><PlusCircle size={18} /><span>Add Image</span></button>
+                    </div>
+                )}
+            </div>
+            <div className="bg-white/5 p-4 rounded-lg">
+                 <h3 className="font-bold text-lg text-white mb-3">Manage Gallery</h3>
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                     {approvedImages.map(img => (
+                         <div key={img.id} className="relative group">
+                             <img src={img.src} alt={img.alt} className="aspect-square w-full h-full object-cover rounded-md"/>
+                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                                <p className="text-white text-xs text-center">{img.alt}</p>
+                                <button onClick={() => setItemToDelete(img)} className="absolute top-1 right-1 p-1 bg-red-500/50 text-white rounded-full hover:bg-red-500"><Trash2 size={14} /></button>
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+            </div>
         </div>
     );
 };
@@ -190,364 +524,8 @@ const SubmissionsReview: React.FC<{
             ))}
             </AnimatePresence>
         </div>
-    )
-}
-
-const GeneralInfoManager: React.FC<{
-    info: PrincipalInfo;
-    vision: TextBlock;
-    mission: TextBlock;
-    coreValues: TextBlock;
-    onSaveInfo: (data: Partial<PrincipalInfo>) => void;
-    onSaveBlock: (key: 'vision' | 'mission' | 'coreValues', data: TextBlock) => void;
-    setAlert: (alert: { message: string, type: 'success' | 'error' } | null) => void;
-}> = ({ info, vision, mission, coreValues, onSaveInfo, onSaveBlock, setAlert }) => {
-    
-    const [principalData, setPrincipalData] = useState(info);
-    const [isEditingPrincipal, setIsEditingPrincipal] = useState(false);
-
-    useEffect(() => {
-        setPrincipalData(info);
-    }, [info]);
-    
-    const handleSavePrincipal = () => {
-        onSaveInfo(principalData);
-        setIsEditingPrincipal(false);
-        setAlert({ message: 'Principal info updated.', type: 'success' });
-    }
-
-    const handleCancelPrincipal = () => {
-        setPrincipalData(info);
-        setIsEditingPrincipal(false);
-    }
-    
-     const handleSaveBlock = (key: 'vision' | 'mission' | 'coreValues', data: TextBlock) => {
-        onSaveBlock(key, data);
-        setAlert({ message: `${key.charAt(0).toUpperCase() + key.slice(1)} section updated.`, type: 'success' });
-    };
-    
-    return (
-        <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-white">General Information</h2>
-            <div className="bg-white/5 p-4 rounded-lg space-y-3">
-                 <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-white">Principal's Message</h3>
-                    {!isEditingPrincipal ? (
-                        <button onClick={() => setIsEditingPrincipal(true)} className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-white/10 text-brand-silver-gray rounded-md hover:bg-white/20 hover:text-white">
-                            <Edit size={14} /><span>Edit</span>
-                        </button>
-                    ) : (
-                        <div className="flex space-x-2">
-                             <button onClick={handleCancelPrincipal} className="px-3 py-1.5 text-sm bg-white/10 text-brand-silver-gray rounded-md hover:bg-white/20 hover:text-white">Cancel</button>
-                             <button onClick={handleSavePrincipal} className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-brand-neon-purple text-white rounded-md hover:bg-opacity-80">
-                                <Save size={14} /><span>Save</span>
-                            </button>
-                        </div>
-                    )}
-                 </div>
-                 {isEditingPrincipal ? (
-                    <>
-                        <input type="text" placeholder="Principal Name" value={principalData.name} onChange={e => setPrincipalData({...principalData, name: e.target.value})} className="w-full input-field"/>
-                        <input type="text" placeholder="Section Title" value={principalData.title} onChange={e => setPrincipalData({...principalData, title: e.target.value})} className="w-full input-field"/>
-                        <textarea placeholder="Message" value={principalData.message} onChange={e => setPrincipalData({...principalData, message: e.target.value})} rows={4} className="w-full input-field"/>
-                        <input type="text" placeholder="Image URL" value={principalData.imageUrl} onChange={e => setPrincipalData({...principalData, imageUrl: e.target.value})} className="w-full input-field"/>
-                    </>
-                 ) : (
-                    <div className="flex flex-col md:flex-row items-center gap-6 pt-2">
-                        <img src={principalData.imageUrl} alt={principalData.name} className="w-32 h-32 rounded-full object-cover border-4 border-brand-light-purple" />
-                        <div className="text-left">
-                            <h4 className="text-xl font-bold text-white">{principalData.title}</h4>
-                            <p className="text-md font-semibold text-brand-silver-gray mt-1">{principalData.name}</p>
-                            <p className="text-sm text-gray-400 mt-2">"{principalData.message}"</p>
-                        </div>
-                    </div>
-                 )}
-            </div>
-            <EditableTextBlock sectionKey="vision" block={vision} onSave={handleSaveBlock} />
-            <EditableTextBlock sectionKey="mission" block={mission} onSave={handleSaveBlock} />
-            <EditableTextBlock sectionKey="coreValues" block={coreValues} onSave={handleSaveBlock} />
-        </div>
-    )
-}
-
-const ContactInfoManager: React.FC<{
-    contactInfo: ContactInfo;
-    onSave: (info: ContactInfo) => void;
-    setAlert: (alert: { message: string, type: 'success' | 'error' } | null) => void;
-}> = ({ contactInfo, onSave, setAlert }) => {
-    const [formData, setFormData] = useState(contactInfo);
-
-    useEffect(() => { setFormData(contactInfo) }, [contactInfo]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSave = () => {
-        onSave(formData);
-        setAlert({ message: 'Contact info updated successfully.', type: 'success' });
-    };
-
-    return (
-        <div className="space-y-4">
-            <h2 className="text-2xl font-semibold text-white">Manage Contact Information</h2>
-            <div className="bg-white/5 p-6 rounded-lg space-y-4">
-                <div>
-                    <label className="text-sm text-brand-silver-gray">School Name</label>
-                    <input name="schoolName" value={formData.schoolName} onChange={handleChange} className="w-full input-field mt-1" />
-                </div>
-                <div>
-                    <label className="text-sm text-brand-silver-gray">Address</label>
-                    <input name="address" value={formData.address} onChange={handleChange} className="w-full input-field mt-1" />
-                </div>
-                <div>
-                    <label className="text-sm text-brand-silver-gray">Email</label>
-                    <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full input-field mt-1" />
-                </div>
-                <div>
-                    <label className="text-sm text-brand-silver-gray">Phone</label>
-                    <input name="phone" value={formData.phone} onChange={handleChange} className="w-full input-field mt-1" />
-                </div>
-                <div>
-                    <label className="text-sm text-brand-silver-gray">Website (without https://)</label>
-                    <input name="website" value={formData.website} onChange={handleChange} className="w-full input-field mt-1" />
-                </div>
-                <div className="pt-2">
-                    <button onClick={handleSave} className="flex items-center space-x-2 px-4 py-2 text-sm bg-brand-neon-purple text-white rounded-md hover:bg-opacity-80">
-                        <Save size={16} /><span>Save Changes</span>
-                    </button>
-                </div>
-            </div>
-        </div>
     );
 };
 
-const StatsManager: React.FC<{
-    stats: Stat[];
-    onSave: (stats: Stat[]) => void;
-    setAlert: (alert: { message: string, type: 'success' | 'error' } | null) => void;
-}> = ({ stats, onSave, setAlert }) => {
-    const [editingStats, setEditingStats] = useState<Stat[]>(stats);
-    const [isEditing, setIsEditing] = useState(false);
-    
-    useEffect(() => {
-        setEditingStats(stats);
-    }, [stats]);
-
-    const handleStatChange = (id: string, field: 'label' | 'value', value: string | number) => {
-        setEditingStats(currentStats =>
-            currentStats.map(stat =>
-                stat.id === id ? { ...stat, [field]: field === 'value' ? Number(value) : value } : stat
-            )
-        );
-    };
-
-    const handleSave = () => {
-        onSave(editingStats);
-        setIsEditing(false);
-        setAlert({ message: 'Stats updated successfully.', type: 'success' });
-    };
-    
-    const handleCancel = () => {
-        setEditingStats(stats);
-        setIsEditing(false);
-    }
-
-    return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-semibold text-white">Manage Statistics</h2>
-                {!isEditing ? (
-                     <button onClick={() => setIsEditing(true)} className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-white/10 text-brand-silver-gray rounded-md hover:bg-white/20 hover:text-white">
-                        <Edit size={14} /><span>Edit Stats</span>
-                    </button>
-                ) : (
-                    <div className="flex space-x-2">
-                         <button onClick={handleCancel} className="px-3 py-1.5 text-sm bg-white/10 text-brand-silver-gray rounded-md hover:bg-white/20 hover:text-white">Cancel</button>
-                         <button onClick={handleSave} className="flex items-center space-x-2 px-3 py-1.5 text-sm bg-brand-neon-purple text-white rounded-md hover:bg-opacity-80">
-                            <Save size={14} /><span>Save Changes</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {editingStats.map(stat => (
-                    <div key={stat.id} className="bg-white/5 p-4 rounded-lg">
-                        {isEditing ? (
-                             <div className="space-y-2">
-                                <label className="text-xs text-brand-silver-gray">Label</label>
-                                <input 
-                                    type="text" 
-                                    value={stat.label} 
-                                    onChange={e => handleStatChange(stat.id, 'label', e.target.value)} 
-                                    className="w-full input-field"
-                                />
-                                <label className="text-xs text-brand-silver-gray">Value</label>
-                                <input 
-                                    type="number" 
-                                    value={stat.value} 
-                                    onChange={e => handleStatChange(stat.id, 'value', e.target.value)} 
-                                    className="w-full input-field"
-                                />
-                            </div>
-                        ) : (
-                             <div className="space-y-1">
-                                <p className="text-brand-silver-gray text-sm">{stat.label}</p>
-                                <p className="text-3xl font-bold text-white">{stat.value.toLocaleString()}</p>
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-
-const AnnouncementsManager: React.FC<{
-    announcements: HomepageAnnouncement[];
-    onAdd: (ann: Omit<HomepageAnnouncement, 'id'>) => void;
-    onDelete: (id: string) => Promise<void>;
-    user: User;
-    setAlert: (alert: { message: string, type: 'success' | 'error' } | null) => void;
-}> = ({ announcements, onAdd, onDelete, user, setAlert }) => {
-    const [newAnn, setNewAnn] = useState({ title: '', content: '', date: new Date().toISOString().split('T')[0] });
-    const [itemToDelete, setItemToDelete] = useState<HomepageAnnouncement | null>(null);
-    
-    const handleAdd = () => {
-        if(!newAnn.title || !newAnn.content) return;
-        onAdd({ ...newAnn, status: 'approved', submittedBy: user.id, authorName: user.name });
-        setNewAnn({ title: '', content: '', date: new Date().toISOString().split('T')[0] });
-        setAlert({ message: 'Announcement added.', type: 'success'});
-    }
-    
-    const handleRemoveClick = (announcement: HomepageAnnouncement) => {
-        setItemToDelete(announcement);
-    };
-
-    const confirmRemove = async () => {
-        if (!itemToDelete) return;
-        try {
-            await onDelete(itemToDelete.id);
-            setAlert({ message: 'Announcement removed successfully.', type: 'success'});
-        } catch (error) {
-            setAlert({ message: 'Failed to remove announcement.', type: 'error'});
-        }
-        setItemToDelete(null);
-    };
-    
-    return (
-        <div className="space-y-4">
-            <ConfirmationModal
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={confirmRemove}
-                title="Remove Announcement"
-                message={`Are you sure you want to remove "${itemToDelete?.title}"? This cannot be undone.`}
-                confirmText="Remove"
-            />
-            <h2 className="text-2xl font-semibold text-white">Manage Announcements</h2>
-             <div className="bg-white/5 p-4 rounded-lg space-y-2">
-                <h3 className="font-bold">Add New Announcement</h3>
-                <input type="text" placeholder="Title" value={newAnn.title} onChange={e => setNewAnn({...newAnn, title: e.target.value})} className="w-full input-field"/>
-                <textarea placeholder="Content" value={newAnn.content} onChange={e => setNewAnn({...newAnn, content: e.target.value})} className="w-full input-field" rows={2}></textarea>
-                <input type="date" value={newAnn.date} onChange={e => setNewAnn({...newAnn, date: e.target.value})} className="w-full input-field"/>
-                <button onClick={handleAdd} className="px-4 py-2 text-sm bg-brand-neon-purple rounded-lg">Add</button>
-            </div>
-            <div className="space-y-2">
-                <AnimatePresence>
-                {announcements.filter(a => a.status === 'approved').map(item => (
-                    <motion.div 
-                        key={item.id}
-                        layout
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                        className="bg-white/5 p-3 rounded-lg flex justify-between items-center gap-4"
-                    >
-                        <div className="min-w-0 flex-1">
-                            <p className="font-bold truncate">{item.title}</p>
-                            <p className="text-xs text-brand-silver-gray">{new Date(item.date).toLocaleDateString()}</p>
-                        </div>
-                        <button onClick={() => handleRemoveClick(item)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-md flex-shrink-0"><Trash2 size={16} /></button>
-                    </motion.div>
-                ))}
-                </AnimatePresence>
-            </div>
-        </div>
-    )
-}
-
-const GalleryManager: React.FC<{
-    images: GalleryImage[];
-    onAdd: (img: Omit<GalleryImage, 'id'>) => void;
-    onDelete: (id: string) => Promise<void>;
-    user: User;
-    setAlert: (alert: { message: string, type: 'success' | 'error' } | null) => void;
-}> = ({ images, onAdd, onDelete, user, setAlert }) => {
-    const [newImg, setNewImg] = useState({ src: '', alt: '' });
-    const [itemToDelete, setItemToDelete] = useState<GalleryImage | null>(null);
-    
-    const handleAdd = () => {
-        if(!newImg.src || !newImg.alt) return;
-        onAdd({ ...newImg, status: 'approved', submittedBy: user.id, authorName: user.name });
-        setNewImg({ src: '', alt: '' });
-        setAlert({ message: 'Image added to gallery.', type: 'success'});
-    }
-    
-    const handleRemoveClick = (image: GalleryImage) => {
-        setItemToDelete(image);
-    };
-
-    const confirmRemove = async () => {
-        if (!itemToDelete) return;
-        try {
-            await onDelete(itemToDelete.id);
-            setAlert({ message: 'Image removed successfully.', type: 'success' });
-        } catch (error) {
-            setAlert({ message: 'Failed to remove image.', type: 'error' });
-        }
-        setItemToDelete(null);
-    };
-
-    return (
-        <div className="space-y-4">
-            <ConfirmationModal
-                isOpen={!!itemToDelete}
-                onClose={() => setItemToDelete(null)}
-                onConfirm={confirmRemove}
-                title="Remove Image"
-                message={`Are you sure you want to remove the image "${itemToDelete?.alt}" from the gallery?`}
-                confirmText="Remove"
-            />
-             <h2 className="text-2xl font-semibold text-white">Manage Gallery</h2>
-             <div className="bg-white/5 p-4 rounded-lg space-y-2">
-                <h3 className="font-bold">Add New Image</h3>
-                <input type="text" placeholder="Image URL" value={newImg.src} onChange={e => setNewImg({...newImg, src: e.target.value})} className="w-full input-field"/>
-                <input type="text" placeholder="Alt Text" value={newImg.alt} onChange={e => setNewImg({...newImg, alt: e.target.value})} className="w-full input-field"/>
-                <button onClick={handleAdd} className="px-4 py-2 text-sm bg-brand-neon-purple rounded-lg">Add</button>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <AnimatePresence>
-                {images.filter(img => img.status === 'approved').map(item => (
-                    <motion.div 
-                        key={item.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.3 } }}
-                        className="relative group"
-                    >
-                        <img src={item.src} alt={item.alt} className="w-full h-32 object-cover rounded-lg" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                            <button onClick={() => handleRemoveClick(item)} className="p-2 bg-red-500/80 text-white rounded-full"><Trash2 size={18}/></button>
-                        </div>
-                    </motion.div>
-                ))}
-                </AnimatePresence>
-            </div>
-        </div>
-    )
-};
-
+// FIX: Add default export
 export default AdminHomepageManager;

@@ -1,8 +1,8 @@
 
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { User, UserRole } from '../types';
-import { MOCK_USERS } from '../constants';
-import { apiDelete } from '../services/apiService';
+import { User, UserRole } from '../types.ts';
+import { MOCK_USERS } from '../constants.ts';
+import { apiDelete } from '../services/apiService.ts';
 
 // To satisfy TypeScript for the EmailJS CDN script
 declare const emailjs: any;

@@ -1,4 +1,4 @@
-import { User, UserRole } from './types';
+import { User, UserRole } from './types.ts';
 
 export const MOCK_USERS: User[] = [
     { id: 's1', name: 'Alex Johnson', email: 'alex@edu.com', role: UserRole.Student, password: 'password123' },

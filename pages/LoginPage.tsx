@@ -2,8 +2,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AuthContext } from '../context/AuthContext';
-import { UserRole } from '../types';
+import { AuthContext } from '../context/AuthContext.tsx';
+import { UserRole } from '../types.ts';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
 const RESEND_TIMEOUT = 30; // 30 seconds

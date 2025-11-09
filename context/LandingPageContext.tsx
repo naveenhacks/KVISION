@@ -1,8 +1,8 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo, useContext } from 'react';
-import { HomepageContent, PrincipalInfo, TextBlock, Stat, HomepageAnnouncement, GalleryImage, ContactInfo } from '../types';
-import { AuthContext } from './AuthContext';
-import { apiDelete } from '../services/apiService';
+import { HomepageContent, PrincipalInfo, TextBlock, Stat, HomepageAnnouncement, GalleryImage, ContactInfo } from '../types.ts';
+import { AuthContext } from './AuthContext.tsx';
+import { apiDelete } from '../services/apiService.ts';
 
 // FIX: Export LandingPageContextType interface
 export interface LandingPageContextType {

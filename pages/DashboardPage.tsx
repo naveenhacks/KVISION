@@ -1,11 +1,11 @@
 
 import React, { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
-import { UserRole } from '../types';
-import AdminDashboard from '../components/dashboard/AdminDashboard';
-import TeacherDashboard from '../components/dashboard/TeacherDashboard';
-import StudentDashboard from '../components/dashboard/StudentDashboard';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import { AuthContext } from '../context/AuthContext.tsx';
+import { UserRole } from '../types.ts';
+import AdminDashboard from '../components/dashboard/AdminDashboard.tsx';
+import TeacherDashboard from '../components/dashboard/TeacherDashboard.tsx';
+import StudentDashboard from '../components/dashboard/StudentDashboard.tsx';
+import DashboardLayout from '../components/layout/DashboardLayout.tsx';
 
 const DashboardPage: React.FC = () => {
   const { user } = useContext(AuthContext);

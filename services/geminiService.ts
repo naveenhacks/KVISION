@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { UserRole } from '../types';
+import { UserRole } from '../types.ts';
 
 // Assume process.env.API_KEY is available
 const API_KEY = process.env.API_KEY;

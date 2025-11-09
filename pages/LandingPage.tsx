@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeContext } from '../context/ThemeContext';
-import { LandingPageContext } from '../context/LandingPageContext';
-import { UserRole } from '../types';
+import { ThemeContext } from '../context/ThemeContext.tsx';
+import { LandingPageContext } from '../context/LandingPageContext.tsx';
+import { UserRole } from '../types.ts';
 import {
     Menu, X, Sun, Moon, ArrowUp, User, GraduationCap, Shield,
     MapPin, Mail, Phone, Globe, Building2

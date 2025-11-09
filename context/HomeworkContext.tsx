@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { Homework } from '../types';
-import { apiDelete } from '../services/apiService';
+import { Homework } from '../types.ts';
+import { apiDelete } from '../services/apiService.ts';
 
 interface HomeworkContextType {
     homeworks: Homework[];

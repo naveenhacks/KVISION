@@ -1,15 +1,15 @@
 
 import React, { useContext, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { ThemeContext } from '../../context/ThemeContext';
-import { MessageContext } from '../../context/MessageContext';
-import { NotificationContext } from '../../context/NotificationContext';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { ThemeContext } from '../../context/ThemeContext.tsx';
+import { MessageContext } from '../../context/MessageContext.tsx';
+import { NotificationContext } from '../../context/NotificationContext.tsx';
 import { Sun, Moon, LogOut, MessageCircle, UserCircle, Bell } from 'lucide-react';
-import { UserRole } from '../../types';
-import NaviAiWidget from '../common/NaviAiWidget';
-import MessagingCenter from '../common/MessagingCenter';
-import NotificationCenter from '../common/NotificationCenter';
+import { UserRole } from '../../types.ts';
+import NaviAiWidget from '../common/NaviAiWidget.tsx';
+import MessagingCenter from '../common/MessagingCenter.tsx';
+import NotificationCenter from '../common/NotificationCenter.tsx';
 
 const KVisionLogo = () => (
     <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-light-purple via-white to-brand-silver-gray">

@@ -2,20 +2,20 @@
 import React, { useContext } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ThemeProvider, ThemeContext } from './context/ThemeContext';
-import { AuthProvider, AuthContext } from './context/AuthContext';
-import { HomeworkProvider } from './context/HomeworkContext';
-import { MessageProvider } from './context/MessageContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { ThemeProvider, ThemeContext } from './context/ThemeContext.tsx';
+import { AuthProvider, AuthContext } from './context/AuthContext.tsx';
+import { HomeworkProvider } from './context/HomeworkContext.tsx';
+import { MessageProvider } from './context/MessageContext.tsx';
+import { NotificationProvider } from './context/NotificationContext.tsx';
 // The new LandingPage does not use this context provider.
-import { LandingPageProvider } from './context/LandingPageContext';
+import { LandingPageProvider } from './context/LandingPageContext.tsx';
 // FIX: The component is now a default export.
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import HomeworkPage from './pages/HomeworkPage';
-import ProfilePage from './pages/ProfilePage';
-import { UserRole } from './types';
+import LandingPage from './pages/LandingPage.tsx';
+import LoginPage from './pages/LoginPage.tsx';
+import DashboardPage from './pages/DashboardPage.tsx';
+import HomeworkPage from './pages/HomeworkPage.tsx';
+import ProfilePage from './pages/ProfilePage.tsx';
+import { UserRole } from './types.ts';
 
 const App: React.FC = () => {
   return (

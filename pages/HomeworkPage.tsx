@@ -2,10 +2,10 @@
 import React, { useState, useContext, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HomeworkContext } from '../context/HomeworkContext';
-import { AuthContext } from '../context/AuthContext';
-import { Homework, UploadedFile } from '../types';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import { HomeworkContext } from '../context/HomeworkContext.tsx';
+import { AuthContext } from '../context/AuthContext.tsx';
+import { Homework, UploadedFile } from '../types.ts';
+import DashboardLayout from '../components/layout/DashboardLayout.tsx';
 import { ArrowLeft, UploadCloud, File as FileIcon, X, CheckCircle, ShieldAlert, Loader } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

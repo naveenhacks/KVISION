@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { Notification, UserRole } from '../types';
+import { Notification, UserRole } from '../types.ts';
 
 interface NotificationContextType {
     notifications: Notification[];

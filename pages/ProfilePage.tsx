@@ -1,10 +1,10 @@
 
 import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AuthContext } from '../context/AuthContext';
-import DashboardLayout from '../components/layout/DashboardLayout';
+import { AuthContext } from '../context/AuthContext.tsx';
+import DashboardLayout from '../components/layout/DashboardLayout.tsx';
 import { UserCircle, Mail, Key, Shield, BookOpen, Percent, BarChart, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
-import Alert from '../components/common/Alert';
+import Alert from '../components/common/Alert.tsx';
 
 const InfoCard: React.FC<{ icon: React.ReactNode; label: string; value: string; }> = ({ icon, label, value }) => (
     <div className="flex items-center space-x-3">

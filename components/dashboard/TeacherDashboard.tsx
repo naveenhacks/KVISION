@@ -1,15 +1,15 @@
 import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { HomeworkContext } from '../../context/HomeworkContext';
-import { User, Announcement, StudentPerformance, Homework, UserRole } from '../../types';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { HomeworkContext } from '../../context/HomeworkContext.tsx';
+import { User, Announcement, StudentPerformance, Homework, UserRole } from '../../types.ts';
 import { PlusCircle, Bell, UserCheck, UserPlus, X, Copy, Check, Trash2, Edit, FileText, FileImage, File, Globe, Eye, EyeOff, Shield, ShieldOff } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import Alert from '../common/Alert';
-import ContributionModal from './teacher/ContributionModal';
-import ConfirmationModal from '../common/ConfirmationModal';
-import AttendanceModal from './teacher/AttendanceModal';
+import Alert from '../common/Alert.tsx';
+import ContributionModal from './teacher/ContributionModal.tsx';
+import ConfirmationModal from '../common/ConfirmationModal.tsx';
+import AttendanceModal from './teacher/AttendanceModal.tsx';
 
 
 const AddStudentModal: React.FC<{

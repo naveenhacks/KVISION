@@ -2,10 +2,10 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Send, X } from 'lucide-react';
-import { AuthContext } from '../../context/AuthContext';
-import { UserRole } from '../../types';
-import { getNaviAiResponse } from '../../services/geminiService';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { UserRole } from '../../types.ts';
+import { getNaviAiResponse } from '../../services/geminiService.ts';
+import { MarkdownRenderer } from './MarkdownRenderer.tsx';
 
 interface Message {
   sender: 'user' | 'ai';

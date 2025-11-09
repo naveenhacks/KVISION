@@ -1,8 +1,8 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo, useContext } from 'react';
-import { Message, User, UploadedFile } from '../types';
-import { AuthContext } from './AuthContext';
-import { apiDelete } from '../services/apiService';
+import { Message, User, UploadedFile } from '../types.ts';
+import { AuthContext } from './AuthContext.tsx';
+import { apiDelete } from '../services/apiService.ts';
 
 export const generateConversationId = (userId1: string, userId2: string) => {
     return [userId1, userId2].sort().join('--');

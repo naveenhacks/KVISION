@@ -3,12 +3,12 @@
 import React, { useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 // FIX: Import Conversation type for better type safety.
-import { MessageContext, Conversation } from '../../context/MessageContext';
-import { AuthContext } from '../../context/AuthContext';
-import { Message, User, UserRole, UploadedFile } from '../../types';
+import { MessageContext, Conversation } from '../../context/MessageContext.tsx';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { Message, User, UserRole, UploadedFile } from '../../types.ts';
 import { Send, Search, X, MessageSquare, Paperclip, FileText, Image, Download, Check, CheckCheck, Trash2 } from 'lucide-react';
-import Alert from './Alert';
-import ConfirmationModal from './ConfirmationModal';
+import Alert from './Alert.tsx';
+import ConfirmationModal from './ConfirmationModal.tsx';
 
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

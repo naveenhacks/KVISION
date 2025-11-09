@@ -1,10 +1,10 @@
 
 import React, { useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { NotificationContext } from '../../context/NotificationContext';
-import { AuthContext } from '../../context/AuthContext';
+import { NotificationContext } from '../../context/NotificationContext.tsx';
+import { AuthContext } from '../../context/AuthContext.tsx';
 import { Bell, X } from 'lucide-react';
-import { timeAgo } from '../../utils/timeAgo';
+import { timeAgo } from '../../utils/timeAgo.ts';
 
 const NotificationCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { user } = useContext(AuthContext);

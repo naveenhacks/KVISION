@@ -1,9 +1,9 @@
 
 import React, { useContext } from 'react';
 import { motion } from 'framer-motion';
-import { Homework } from '../../types';
-import { AuthContext } from '../../context/AuthContext';
-import { HomeworkContext } from '../../context/HomeworkContext';
+import { Homework } from '../../types.ts';
+import { AuthContext } from '../../context/AuthContext.tsx';
+import { HomeworkContext } from '../../context/HomeworkContext.tsx';
 import { Book, Clock, Download } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
