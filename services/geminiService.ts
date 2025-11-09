@@ -3,14 +3,16 @@ import { UserRole } from '../types.ts';
 
 // Assume process.env.API_KEY is available
 const API_KEY = process.env.API_KEY;
-if (!API_KEY) {
+
+let ai: GoogleGenAI | null = null;
+if (API_KEY) {
+  ai = new GoogleGenAI({ apiKey: API_KEY });
+} else {
   console.warn("API_KEY not found. AI features will be disabled.");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY! });
-
 export const getNaviAiResponse = async (question: string, role: UserRole): Promise<string> => {
-  if (!API_KEY) {
+  if (!ai) {
     return "The AI Tutor is currently unavailable. Please check the API configuration.";
   }
 
