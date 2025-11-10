@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -27,7 +26,7 @@ const AddStudentModal: React.FC<{
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !apaarId || !password) {
             setError('Please fill out all fields.');
@@ -36,16 +35,14 @@ const AddStudentModal: React.FC<{
         setLoading(true);
         setError('');
         
-        setTimeout(() => {
-            try {
-                const newStudent = addStudent(name, apaarId, password);
-                onStudentAdded(newStudent);
-            } catch (err: any) {
-                setError(err.message || 'Failed to create student. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        }, 500);
+        try {
+            const newStudent = await addStudent(name, apaarId, password);
+            onStudentAdded(newStudent);
+        } catch (err: any) {
+            setError(err.message || 'Failed to create student. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCopy = () => {

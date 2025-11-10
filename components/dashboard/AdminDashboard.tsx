@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// FIX: Import Variants type from framer-motion to fix type errors.
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { HomeworkContext } from '../../context/HomeworkContext.tsx';
 import { NotificationContext } from '../../context/NotificationContext.tsx';
@@ -18,9 +19,10 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 
 // --- HELPER & REUSABLE COMPONENTS ---
 
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
+// FIX: Changed icon prop type from React.ReactNode to React.ReactElement to resolve cloneElement error.
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactElement; color: string }> = ({ title, value, icon, color }) => (
     <div className="bg-brand-light-blue p-5 rounded-xl border border-white/10 flex items-center space-x-4 transform transition-transform hover:-translate-y-1 h-full">
-        <div className={`p-3 bg-${color}-500/20 rounded-full`}>{React.cloneElement(icon as React.ReactElement, { className: `text-${color}-400` })}</div>
+        <div className={`p-3 bg-${color}-500/20 rounded-full`}>{React.cloneElement(icon, { className: `text-${color}-400` })}</div>
         <div>
             <p className="text-brand-silver-gray text-sm">{title}</p>
             <p className="text-2xl font-bold text-white">{value}</p>
@@ -40,7 +42,8 @@ const navItems = [
     { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
 ];
 
-const contentVariants = {
+// FIX: Add Variants type to fix type error for 'ease' property.
+const contentVariants: Variants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
   exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: 'easeIn' } },
@@ -63,7 +66,8 @@ const AdminSidebar: React.FC<{
         }
     }
 
-    const sidebarVariants = {
+    // FIX: Add Variants type to fix type error for 'type' property.
+    const sidebarVariants: Variants = {
         open: { x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
         closed: { x: '-100%', transition: { type: 'spring', stiffness: 300, damping: 30 } },
     };
@@ -118,7 +122,7 @@ const TeacherModal: React.FC<{
     isOpen: boolean;
     mode: 'add' | 'edit';
     user: Partial<User> | null;
-    onSave: (user: Partial<User>) => User | void;
+    onSave: (user: Partial<User>) => Promise<User | void>;
     onClose: () => void;
 }> = ({ isOpen, mode, user, onSave, onClose }) => {
     const [formData, setFormData] = useState<Partial<User> | null>(null);
@@ -136,14 +140,14 @@ const TeacherModal: React.FC<{
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData && formData.name && formData.email && formData.password) {
             if (mode === 'add') {
-                const newTeacher = onSave({ ...formData, role: UserRole.Teacher });
+                const newTeacher = await onSave({ ...formData, role: UserRole.Teacher });
                 if (newTeacher) setCredentials(newTeacher as User);
             } else {
-                onSave(formData);
+                await onSave(formData);
                 onClose();
             }
         }
@@ -209,7 +213,7 @@ const StudentModal: React.FC<{
     isOpen: boolean;
     mode: 'add' | 'edit';
     user: Partial<User> | null;
-    onSave: (user: Partial<User>) => User | void;
+    onSave: (user: Partial<User>) => Promise<User | void>;
     onClose: () => void;
 }> = ({ isOpen, mode, user, onSave, onClose }) => {
     const [formData, setFormData] = useState<Partial<User> | null>(null);
@@ -227,14 +231,14 @@ const StudentModal: React.FC<{
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData && formData.name && formData.id && formData.password) {
             if (mode === 'add') {
-                const newStudent = onSave({ ...formData, role: UserRole.Student });
+                const newStudent = await onSave({ ...formData, role: UserRole.Student });
                 if (newStudent) setCredentials(newStudent as User);
             } else {
-                onSave(formData);
+                await onSave(formData);
                 onClose();
             }
         }
@@ -453,11 +457,11 @@ const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }>
         }
     };
 
-    const handleSaveUser = (userData: Partial<User>): User | void => {
+    const handleSaveUser = async (userData: Partial<User>): Promise<User | void> => {
         if (modalMode === 'add') {
             if (userData.role === UserRole.Teacher && userData.name && userData.email && userData.password) {
                 try {
-                    const newTeacher = addTeacher(userData.name, userData.email, userData.password);
+                    const newTeacher = await addTeacher(userData.name, userData.email, userData.password);
                     setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
                     return newTeacher;
                 } catch (err: any) {
@@ -621,11 +625,11 @@ const AdminTeacherManagement: React.FC = () => {
         setCurrentUser(user);
         setIsModalOpen(true);
     };
-    const handleSave = (userData: Partial<User>): User | void => {
+    const handleSave = async (userData: Partial<User>): Promise<User | void> => {
         if (modalMode === 'add') {
              if (userData.name && userData.email && userData.password) {
                  try {
-                    const newTeacher = addTeacher(userData.name, userData.email, userData.password);
+                    const newTeacher = await addTeacher(userData.name, userData.email, userData.password);
                     setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
                     return newTeacher;
                  } catch (err: any) {
@@ -684,11 +688,11 @@ const AdminStudentManagement: React.FC<{ onMessageUser: (userId: string) => void
         setCurrentUser(user);
         setIsModalOpen(true);
     };
-    const handleSave = (userData: Partial<User>): User | void => {
+    const handleSave = async (userData: Partial<User>): Promise<User | void> => {
         if (modalMode === 'add') {
              if (userData.name && userData.id && userData.password) {
                  try {
-                    const newStudent = addStudent(userData.name, userData.id, userData.password);
+                    const newStudent = await addStudent(userData.name, userData.id, userData.password);
                     setAlert({ message: `Student "${newStudent.name}" added successfully.`, type: 'success' });
                     return newStudent;
                  } catch (err: any) {

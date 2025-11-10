@@ -1,7 +1,17 @@
-
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { User, UserRole } from '../types.ts';
 import { apiDelete } from '../services/apiService.ts';
+import { auth } from '../services/firebase.ts';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  signOut,
+  createUserWithEmailAndPassword,
+  updatePassword as firebaseUpdatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from 'firebase/auth';
+
 
 // Hardcoded static users for initial setup if no data is in local storage
 const ALL_USERS: User[] = [
@@ -42,8 +52,8 @@ interface AuthContextType {
   users: User[];
   login: (role: UserRole, email: string, pass: string) => Promise<{ success: boolean, message?: string }>;
   logout: () => void;
-  addStudent: (name: string, apaarId: string, password: string) => User;
-  addTeacher: (name: string, email: string, password: string) => User;
+  addStudent: (name: string, apaarId: string, password: string) => Promise<User>;
+  addTeacher: (name: string, email: string, password: string) => Promise<User>;
   deleteUser: (userId: string) => Promise<void>;
   updateUsers: (updater: (prevUsers: User[]) => User[]) => void;
   updatePassword: (userId: string, oldPass: string, newPass: string) => Promise<{ success: boolean; message: string }>;
@@ -55,8 +65,8 @@ export const AuthContext = createContext<AuthContextType>({
   users: [],
   login: async () => ({ success: false, message: 'Function not ready.' }),
   logout: () => {},
-  addStudent: () => { throw new Error('Function not ready.') },
-  addTeacher: () => { throw new Error('Function not ready.') },
+  addStudent: async () => { throw new Error('Function not ready.') },
+  addTeacher: async () => { throw new Error('Function not ready.') },
   deleteUser: async () => {},
   updateUsers: () => {},
   updatePassword: async () => ({ success: false, message: 'Function not ready.'}),
@@ -103,130 +113,188 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [users]);
   
-  // Effect to restore session on initial load
+  // Effect to listen for Firebase auth state changes
   useEffect(() => {
-    try {
-        const storedUser = sessionStorage.getItem(SESSION_USER_KEY);
-        if (storedUser) {
-            const sessionUser = JSON.parse(storedUser);
-            // Verify the session user still exists and is not blocked
-            const userExists = users.find(u => u.id === sessionUser.id && !u.blocked);
-            if (userExists) {
-                setUser(userExists);
-            } else {
-                sessionStorage.removeItem(SESSION_USER_KEY);
-            }
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in via Firebase. Find their profile in our local user list.
+        const userProfile = users.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
+        
+        if (userProfile && !userProfile.blocked) {
+          setUser(userProfile);
+          sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(userProfile));
+        } else {
+          // User exists in Firebase but not in our system, or is blocked.
+          // For security, sign them out of Firebase and clear local state.
+          signOut(auth);
+          setUser(null);
         }
-    } catch (error) {
-        console.error("Failed to parse session user", error);
-    }
-    setLoading(false);
+      } else {
+        // User is signed out.
+        setUser(null);
+        sessionStorage.removeItem(SESSION_USER_KEY);
+      }
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, [users]);
 
   const login = useCallback(async (role: UserRole, email: string, pass: string): Promise<{ success: boolean, message?: string }> => {
-    await new Promise(res => setTimeout(res, 500)); // Simulate network delay
-    
-    const targetUser = users.find(u => u.role === role && u.email.toLowerCase() === email.toLowerCase() && u.password === pass);
+    // First, verify the user exists with the correct role in our local database.
+    const targetUser = users.find(u => u.role === role && u.email.toLowerCase() === email.toLowerCase());
 
-    if (targetUser) {
-        if (targetUser.blocked) {
-            return { success: false, message: 'Your account has been blocked.' };
-        }
-        setUser(targetUser);
-        sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(targetUser));
-        return { success: true };
+    if (!targetUser) {
+        return { success: false, message: 'Invalid credentials. Please check and try again.' };
+    }
+    if (targetUser.blocked) {
+        return { success: false, message: 'Your account has been blocked.' };
     }
 
-    return { success: false, message: 'Invalid credentials. Please check and try again.' };
+    // If local checks pass, attempt to sign in with Firebase.
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+      // onAuthStateChanged listener will handle setting the user state.
+      return { success: true };
+    } catch (error: any) {
+      let message = 'An unknown error occurred.';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+          message = 'Invalid credentials. Please check and try again.';
+      } else {
+          console.error("Firebase login error:", error);
+      }
+      return { success: false, message };
+    }
   }, [users]);
   
   const logout = useCallback(() => {
-    setUser(null);
-    sessionStorage.removeItem(SESSION_USER_KEY);
+    signOut(auth);
+    // onAuthStateChanged will clear user state and sessionStorage.
   }, []);
 
-  const addStudent = useCallback((name: string, apaarId: string, password: string): User => {
+  const addStudent = useCallback(async (name: string, apaarId: string, password: string): Promise<User> => {
     const studentEmail = `${apaarId.toLowerCase().replace(/\s/g, '')}@edu.com`;
 
-    if (users.some(u => u.id === apaarId)) {
-        throw new Error("A user with this Apaar ID already exists.");
-    }
-    if (users.some(u => u.email.toLowerCase() === studentEmail)) {
-        throw new Error("A user with the generated email already exists. Please choose a different Apaar ID.");
+    if (users.some(u => u.id === apaarId || u.email.toLowerCase() === studentEmail)) {
+        throw new Error("A user with this Apaar ID or email already exists.");
     }
 
-    const newStudent: User = {
-      id: apaarId,
-      name,
-      email: studentEmail,
-      role: UserRole.Student,
-      password: password,
-      blocked: false,
-      studentData: { // Add default academic data for new students
-        courses: ['General Science', 'Mathematics', 'English'],
-        attendance: 100,
-        overallGrade: 0,
-      }
-    };
-    setUsers(prevUsers => [...prevUsers, newStudent]);
-    return newStudent;
+    try {
+        await createUserWithEmailAndPassword(auth, studentEmail, password);
+        // Firebase user created. Now create the local user profile.
+        const newStudent: User = {
+          id: apaarId,
+          name,
+          email: studentEmail,
+          role: UserRole.Student,
+          password: password, // Store for modals (e.g., copy credentials)
+          blocked: false,
+          studentData: {
+            courses: ['General Science', 'Mathematics', 'English'],
+            attendance: 100,
+            overallGrade: 0,
+          }
+        };
+        setUsers(prevUsers => [...prevUsers, newStudent]);
+        return newStudent;
+    } catch (error: any) {
+        console.error("Firebase student creation error:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            throw new Error("This email is already registered in the authentication system.");
+        }
+        if (error.code === 'auth/weak-password') {
+            throw new Error("Password is too weak. It should be at least 6 characters.");
+        }
+        throw new Error("Failed to create user in the authentication system.");
+    }
   }, [users]);
 
-  const addTeacher = useCallback((name: string, email: string, password: string): User => {
+  const addTeacher = useCallback(async (name: string, email: string, password: string): Promise<User> => {
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
         throw new Error("A user with this email already exists.");
     }
     
-    const newId = generateNewTeacherId(users);
-    const newTeacher: User = {
-      id: newId,
-      name,
-      email,
-      role: UserRole.Teacher,
-      password: password,
-    };
-    setUsers(prevUsers => [...prevUsers, newTeacher]);
-    return newTeacher;
+    try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Firebase user created. Now create the local user profile.
+        const newId = generateNewTeacherId(users);
+        const newTeacher: User = {
+          id: newId,
+          name,
+          email,
+          role: UserRole.Teacher,
+          password: password,
+        };
+        setUsers(prevUsers => [...prevUsers, newTeacher]);
+        return newTeacher;
+    } catch(error: any) {
+        console.error("Firebase teacher creation error:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            throw new Error("This email is already registered in the authentication system.");
+        }
+        if (error.code === 'auth/weak-password') {
+            throw new Error("Password is too weak. It should be at least 6 characters.");
+        }
+        throw new Error("Failed to create user in the authentication system.");
+    }
   }, [users]);
 
   const deleteUser = useCallback(async (userId: string) => {
+    // NOTE: Deleting a Firebase user is a privileged action that should be handled
+    // on a secure backend (e.g., Firebase Functions), not from the client.
+    // This function will only remove the user from the local application state.
+    const userToDelete = users.find(u => u.id === userId);
+    if (userToDelete && userToDelete.id === user?.id) {
+        await signOut(auth); // Log out if deleting self
+    }
     await apiDelete('/api/remove/user', userId);
     setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
-  }, []);
+  }, [users, user]);
 
   const updateUsers = useCallback((updater: (prevUsers: User[]) => User[]) => {
     setUsers(updater);
   }, []);
   
   const updatePassword = useCallback(async (userId: string, oldPass: string, newPass: string): Promise<{ success: boolean; message: string }> => {
-    await new Promise(res => setTimeout(res, 500)); // Simulate network delay
+    const currentUser = auth.currentUser;
+    const localUser = users.find(u => u.id === userId);
 
-    const userToUpdate = users.find(u => u.id === userId);
-    
-    if (!userToUpdate) {
-        return { success: false, message: 'User not found.' };
+    if (!currentUser || !localUser || currentUser.email !== localUser.email) {
+        return { success: false, message: 'Authentication error. Please log in again.' };
     }
 
-    if (userToUpdate.password !== oldPass) {
-        return { success: false, message: 'Current password does not match.' };
-    }
-    
-    // Using functional update ensures we are updating based on the latest state,
-    // and correctly triggers the useEffect to save to localStorage.
-    setUsers(prev => {
-        const updatedUsers = prev.map(u => u.id === userId ? { ...u, password: newPass } : u);
-        // also update the currently logged-in user if they are the one changing the password
-        if(user?.id === userId) {
-            const updatedCurrentUser = updatedUsers.find(u => u.id === userId);
-            if(updatedCurrentUser) {
-                sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(updatedCurrentUser));
-                setUser(updatedCurrentUser);
+    try {
+        const credential = EmailAuthProvider.credential(currentUser.email, oldPass);
+        await reauthenticateWithCredential(currentUser, credential);
+        
+        // Re-authentication successful, now update the password in Firebase.
+        await firebaseUpdatePassword(currentUser, newPass);
+        
+        // Also update the password in our local user list for consistency.
+        setUsers(prev => {
+            const updatedUsers = prev.map(u => u.id === userId ? { ...u, password: newPass } : u);
+            if(user?.id === userId) {
+                const updatedCurrentUser = updatedUsers.find(u => u.id === userId);
+                if(updatedCurrentUser) {
+                    setUser(updatedCurrentUser); // Update current user state
+                    sessionStorage.setItem(SESSION_USER_KEY, JSON.stringify(updatedCurrentUser));
+                }
             }
+            return updatedUsers;
+        });
+        
+        return { success: true, message: 'Password updated successfully!' };
+    } catch (error: any) {
+        console.error("Firebase password update error:", error);
+        let message = 'Failed to update password. Please try again.';
+        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+            message = 'Current password does not match.';
+        } else if (error.code === 'auth/weak-password') {
+            message = 'New password is too weak. It must be at least 6 characters.';
         }
-        return updatedUsers;
-    });
-    
-    return { success: true, message: 'Password updated successfully!' };
+        return { success: false, message };
+    }
   }, [users, user]);
 
   const contextValue = useMemo(() => ({

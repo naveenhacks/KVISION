@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+// FIX: Import Variants type from framer-motion to fix type errors.
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { ThemeContext } from '../context/ThemeContext.tsx';
 import { LandingPageContext } from '../context/LandingPageContext.tsx';
 import { UserRole } from '../types.ts';
@@ -126,7 +127,8 @@ const Section: React.FC<{ id: string; className?: string; children: React.ReactN
     </motion.section>
 );
 
-const itemVariants = {
+// FIX: Add Variants type to fix type error for 'ease' property.
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 50 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
 };

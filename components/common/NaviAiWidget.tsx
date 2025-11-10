@@ -1,6 +1,7 @@
 
 import React, { useState, useContext, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// FIX: Import Variants type from framer-motion to fix type errors.
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Bot, Send, X } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { UserRole } from '../../types.ts';
@@ -75,12 +76,14 @@ const NaviAiWidget: React.FC = () => {
         handleSendMessage();
     };
     
-    const floatingButtonVariants = {
+    // FIX: Add Variants type to fix type error for 'type' property.
+    const floatingButtonVariants: Variants = {
       hidden: { scale: 0, opacity: 0, y: 100 },
       visible: { scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20, delay: 0.5 } },
     };
 
-    const chatWindowVariants = {
+    // FIX: Add Variants type to fix type error for 'type' property.
+    const chatWindowVariants: Variants = {
         closed: { opacity: 0, y: 100, scale: 0.8, originX: 1, originY: 1 },
         open: { opacity: 1, y: 0, scale: 1, originX: 1, originY: 1, transition: { type: 'spring', stiffness: 300, damping: 30 } },
     };

@@ -3,14 +3,16 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageContext, generateConversationId, Conversation } from '../../../context/MessageContext';
 import { AuthContext } from '../../../context/AuthContext';
-import { Message, User, UserRole } from '../../../types';
+// FIX: Import UploadedFile type to resolve type errors in FileMessage component.
+import { Message, User, UserRole, UploadedFile } from '../../../types';
 import { Send, Search, ArrowLeft, MessageSquare, Trash2, Download, FileText, Image } from 'lucide-react';
 import Alert from '../../common/Alert';
 import ConfirmationModal from '../../common/ConfirmationModal';
 
 const ADMIN_MESSAGING_ID = 'kvision_admin_inbox';
 
-const FileMessage: React.FC<{ file: Message['content']['value'] }> = ({ file }) => {
+// FIX: Change file prop type to UploadedFile to fix property access errors.
+const FileMessage: React.FC<{ file: UploadedFile }> = ({ file }) => {
     if (file.type.startsWith('image/')) {
         return (
             <div className="p-2">
@@ -193,6 +195,9 @@ const AdminMessaging: React.FC<{
                                     <button type="submit" className="bg-brand-neon-purple p-3 rounded-lg text-white disabled:bg-opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 transition-all aspect-square">
                                         <Send size={20} />
                                     </button>
+                       
+                       
+                       
                                 </form>
                             </div>
                         </>
