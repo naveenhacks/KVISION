@@ -13,127 +13,19 @@ import ConfirmationModal from '../common/ConfirmationModal.tsx';
 import AttendanceModal from './teacher/AttendanceModal.tsx';
 
 
-const AddStudentModal: React.FC<{
-    onClose: () => void;
-    onStudentAdded: (credentials: User) => void;
-    credentials: User | null;
-}> = ({ onClose, onStudentAdded, credentials }) => {
-    const { addStudent } = useContext(AuthContext);
-    const [name, setName] = useState('');
-    const [apaarId, setApaarId] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!name || !apaarId || !password) {
-            setError('Please fill out all fields.');
-            return;
-        }
-        setLoading(true);
-        setError('');
-        
-        try {
-            const newStudent = await addStudent(name, apaarId, password);
-            onStudentAdded(newStudent);
-        } catch (err: any) {
-            setError(err.message || 'Failed to create student. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleCopy = () => {
-        if (!credentials) return;
-        const textToCopy = `Apaar ID: ${credentials.id}\nPassword: ${credentials.password}`;
-        navigator.clipboard.writeText(textToCopy);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="w-full max-w-md bg-brand-light-blue rounded-2xl border border-white/10 shadow-2xl shadow-brand-neon-purple/30"
-                onClick={(e) => e.stopPropagation()}
-            >
-                 <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-2xl font-bold text-white">
-                            {credentials ? 'Student Created!' : 'Add New Student'}
-                        </h2>
-                        <button onClick={onClose} className="p-1 rounded-full text-brand-silver-gray hover:bg-white/10 hover:text-white transition-colors">
-                            <X size={20} />
-                        </button>
-                    </div>
-
-                    {credentials ? (
-                        <div className="space-y-4 text-center">
-                            <p className="text-brand-silver-gray">Share the following credentials with the student.</p>
-                            <div className="bg-white/10 p-4 rounded-lg space-y-2 text-left">
-                                <p><span className="font-semibold text-brand-silver-gray">Apaar ID:</span> <code className="bg-black/20 px-2 py-1 rounded text-brand-light-purple">{credentials.id}</code></p>
-                                <p><span className="font-semibold text-brand-silver-gray">Password:</span> <code className="bg-black/20 px-2 py-1 rounded text-brand-light-purple">{credentials.password}</code></p>
-                            </div>
-                            <button onClick={handleCopy} className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80 transition-colors">
-                                {copied ? <Check size={20} /> : <Copy size={20} />}
-                                <span>{copied ? 'Copied!' : 'Copy Credentials'}</span>
-                            </button>
-                             <button onClick={onClose} className="w-full px-4 py-2 rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors">Close</button>
-                        </div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-brand-silver-gray">Full Name</label>
-                                <input id="name" name="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-light-purple"/>
-                            </div>
-                            <div>
-                                <label htmlFor="apaarId" className="block text-sm font-medium text-brand-silver-gray">Apaar ID</label>
-                                <input id="apaarId" name="apaarId" type="text" value={apaarId} onChange={(e) => setApaarId(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-light-purple"/>
-                            </div>
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-brand-silver-gray">Set Password</label>
-                                <input id="password" name="password" type="text" value={password} onChange={(e) => setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-light-purple"/>
-                            </div>
-                            {error && <p className="text-red-400 text-sm">{error}</p>}
-                            <div className="pt-4 flex justify-end space-x-3">
-                                <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors">Cancel</button>
-                                <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80 transition-colors disabled:bg-opacity-50 disabled:cursor-wait">
-                                    {loading ? 'Creating...' : 'Create Student'}
-                                </button>
-                            </div>
-                        </form>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
-
 const EditStudentModal: React.FC<{
     student: User;
     onClose: () => void;
     onSave: () => void;
 }> = ({ student, onClose, onSave }) => {
-    const { updateUsers } = useContext(AuthContext);
+    const { updateUser } = useContext(AuthContext);
     const [name, setName] = useState(student.name);
     const [password, setPassword] = useState(student.password || '');
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        updateUsers(prev => prev.map(u => u.id === student.id ? { ...u, name, password } : u));
+        await updateUser(student.id, { name, password });
         onSave();
         onClose();
     };
@@ -246,15 +138,13 @@ const FileTypeIcon = ({ fileType }: { fileType?: string }) => {
 };
 
 const TeacherDashboard: React.FC = () => {
-    const { user, users, updateUsers, deleteUser } = useContext(AuthContext);
+    const { user, users, updateUser, deleteUser } = useContext(AuthContext);
     const { homeworks, deleteHomework } = useContext(HomeworkContext);
     const { announcements, addAnnouncement } = useContext(AnnouncementContext);
     const navigate = useNavigate();
-    const [isAddStudentModalOpen, setAddStudentModalOpen] = useState(false);
     const [isContribModalOpen, setContribModalOpen] = useState(false);
     const [isAttendanceModalOpen, setAttendanceModalOpen] = useState(false);
     const [isAnnouncementModalOpen, setAnnouncementModalOpen] = useState(false);
-    const [newStudentCredentials, setNewStudentCredentials] = useState<User | null>(null);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [homeworkToDelete, setHomeworkToDelete] = useState<Homework | null>(null);
     const [studentToDelete, setStudentToDelete] = useState<User | null>(null);
@@ -279,28 +169,24 @@ const TeacherDashboard: React.FC = () => {
         setHomeworkToDelete(homework);
     };
 
-    const confirmRemoveHomework = async () => {
+    const confirmRemoveHomework = () => {
         if (!homeworkToDelete) return;
-
-        try {
-            await deleteHomework(homeworkToDelete.id);
-            setAlert({ message: `Homework "${homeworkToDelete.title}" removed successfully.`, type: 'success' });
-        } catch (error) {
-            const err = error as Error;
-            setAlert({ message: err.message || 'Failed to remove homework. Please try again.', type: 'error' });
-        } finally {
-            setHomeworkToDelete(null);
-        }
+        deleteHomework(homeworkToDelete.id)
+            .then(() => {
+                setAlert({ message: `Homework "${homeworkToDelete.title}" removed successfully.`, type: 'success' });
+            })
+            .catch((error) => {
+                 setAlert({ message: error.message || 'Failed to remove homework.', type: 'error' });
+            })
+            .finally(() => {
+                setHomeworkToDelete(null);
+            });
     };
 
     const handleBlockToggle = (studentId: string) => {
         const studentToToggle = students.find(s => s.id === studentId);
         if (studentToToggle) {
-            updateUsers(prevUsers =>
-                prevUsers.map(u =>
-                    u.id === studentId ? { ...u, blocked: !u.blocked } : u
-                )
-            );
+            updateUser(studentId, { blocked: !studentToToggle.blocked });
             setAlert({
                 message: `Student "${studentToToggle.name}" has been ${studentToToggle.blocked ? 'unblocked' : 'blocked'}.`,
                 type: 'success'
@@ -312,35 +198,37 @@ const TeacherDashboard: React.FC = () => {
         setStudentToDelete(student);
     };
 
-    const confirmDeleteStudent = async () => {
+    const confirmDeleteStudent = () => {
         if (!studentToDelete) return;
-        try {
-            await deleteUser(studentToDelete.id);
-            setAlert({ message: `Student "${studentToDelete.name}" removed successfully.`, type: 'success' });
-        } catch (error) {
-            setAlert({ message: `Failed to remove student. Please try again.`, type: 'error' });
-        }
-        setStudentToDelete(null);
+        deleteUser(studentToDelete.id, studentToDelete.uid)
+            .then(() => {
+                setAlert({ message: `Student "${studentToDelete.name}" removed successfully.`, type: 'success' });
+            })
+            .catch(() => {
+                setAlert({ message: `Failed to remove student.`, type: 'error' });
+            })
+            .finally(() => {
+                setStudentToDelete(null);
+            });
     };
     
     const handleSubmissionSuccess = () => {
         setContribModalOpen(false);
-        setAlert({ message: "Content submitted for review successfully!", type: 'success' });
+        setAlert({ message: "Content submitted for review successfully!", type: "success" });
     }
 
     const handleAttendanceSubmit = (attendanceData: Record<string, 'present' | 'absent' | 'late'>) => {
-        // In a real app, this would be an API call.
         console.log("Attendance Submitted:", attendanceData);
-        setAttendanceModalOpen(false); // Close modal on submit
+        setAttendanceModalOpen(false);
         setAlert({
             message: 'Attendance for today has been submitted successfully!',
             type: 'success',
         });
     };
 
-    const handleAddAnnouncement = async (title: string, content: string) => {
+    const handleAddAnnouncement = (title: string, content: string) => {
         if (user) {
-            await addAnnouncement({ title, content, teacherName: user.name });
+            addAnnouncement({ title, content, teacherName: user.name });
             setAlert({ message: 'Announcement posted successfully!', type: 'success' });
         }
     };
@@ -351,13 +239,6 @@ const TeacherDashboard: React.FC = () => {
                 {alert && <Alert message={alert.message} type={alert.type} onClose={() => setAlert(null)} />}
             </AnimatePresence>
             <AnimatePresence>
-                {isAddStudentModalOpen && (
-                    <AddStudentModal
-                        onClose={() => { setAddStudentModalOpen(false); setNewStudentCredentials(null); }}
-                        onStudentAdded={(creds) => setNewStudentCredentials(creds)}
-                        credentials={newStudentCredentials}
-                    />
-                )}
                 {isContribModalOpen && (
                     <ContributionModal
                         onClose={() => setContribModalOpen(false)}
@@ -407,10 +288,7 @@ const TeacherDashboard: React.FC = () => {
                 Teacher Dashboard - Welcome, {user?.name}!
             </motion.h1>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-                 <button onClick={() => setAddStudentModalOpen(true)} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
-                    <UserPlus /> <span>Add Student</span>
-                </button>
+            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 <button onClick={() => navigate('/dashboard/homework/new')} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
                     <PlusCircle /> <span>Upload Homework</span>
                 </button>
@@ -452,4 +330,70 @@ const TeacherDashboard: React.FC = () => {
                                         </div>
                                     </motion.div>
                                 ))}
-                            </AnimatePresence
+                            </AnimatePresence>
+                        ) : (
+                            <p className="text-center text-brand-silver-gray py-4">No homework uploaded yet.</p>
+                        )}
+                    </div>
+                </motion.div>
+                
+                 <motion.div variants={itemVariants} className="lg:col-span-1 bg-white/5 p-6 rounded-xl border border-white/10">
+                    <h2 className="text-2xl font-semibold mb-4 text-brand-light-purple">Student Performance</h2>
+                     <div className="h-96">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={mockPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                                <XAxis dataKey="name" stroke="#c0c0c0" fontSize={12} />
+                                <YAxis yAxisId="left" orientation="left" stroke="#8a2be2" fontSize={12} />
+                                <YAxis yAxisId="right" orientation="right" stroke="#c471ed" fontSize={12} />
+                                <Tooltip contentStyle={{ backgroundColor: '#1e1a50', border: 'none', borderRadius: '10px' }}/>
+                                <Legend />
+                                <Bar yAxisId="left" dataKey="attendance" fill="#8a2be2" name="Attendance (%)" />
+                                <Bar yAxisId="right" dataKey="grade" fill="#c471ed" name="Grade (%)" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
+
+                <motion.div variants={itemVariants} className="lg:col-span-2 bg-white/5 p-6 rounded-xl border border-white/10">
+                    <h2 className="text-2xl font-semibold mb-4 text-brand-light-purple">Student Management</h2>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="border-b border-white/20">
+                                    <th className="p-3 text-sm font-semibold text-brand-silver-gray">Name</th>
+                                    <th className="p-3 text-sm font-semibold text-brand-silver-gray hidden sm:table-cell">Apaar ID</th>
+                                    <th className="p-3 text-sm font-semibold text-brand-silver-gray hidden md:table-cell">Status</th>
+                                    <th className="p-3 text-sm font-semibold text-brand-silver-gray text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {students.map(student => (
+                                    <tr key={student.id} className={`border-b border-white/10 hover:bg-white/5 transition-colors ${student.blocked ? 'opacity-50' : ''}`}>
+                                        <td className="p-3 text-white font-medium">{student.name}</td>
+                                        <td className="p-3 text-gray-300 hidden sm:table-cell">{student.id}</td>
+                                        <td className="p-3 hidden md:table-cell">
+                                            <span className={`px-2 py-1 text-xs rounded-full capitalize ${student.blocked ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'}`}>
+                                                {student.blocked ? 'Blocked' : 'Active'}
+                                            </span>
+                                        </td>
+                                        <td className="p-3 flex items-center justify-end space-x-1">
+                                            <button onClick={() => handleBlockToggle(student.id)} className={`${student.blocked ? 'text-green-400' : 'text-red-400'} p-2 rounded-md hover:bg-red-400/10`} title={student.blocked ? 'Unblock' : 'Block'}>
+                                                {student.blocked ? <ShieldOff size={16}/> : <Shield size={16}/>}
+                                            </button>
+                                            <button onClick={() => setEditingStudent(student)} className="text-yellow-400 p-2 rounded-md hover:bg-yellow-400/10" title="Edit"><Edit size={16}/></button>
+                                            <button onClick={() => handleDeleteClick(student)} className="text-red-400 p-2 rounded-md hover:bg-red-400/10" title="Remove"><Trash2 size={16}/></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                         {students.length === 0 && <p className="text-center text-brand-silver-gray py-8">No students added yet.</p>}
+                    </div>
+                </motion.div>
+            </div>
+        </motion.div>
+    );
+};
+
+export default TeacherDashboard;

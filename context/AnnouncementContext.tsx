@@ -1,7 +1,7 @@
-import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { Announcement } from '../types.ts';
-import { db } from '../services/firebase.ts';
-import { collection, onSnapshot, addDoc, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface AnnouncementContextType {
     announcements: Announcement[];
@@ -21,24 +21,25 @@ export const AnnouncementProvider: React.FC<AnnouncementProviderProps> = ({ chil
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     useEffect(() => {
-        const q = query(collection(db, "announcements"), orderBy("date", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const announcementsData = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id
-            } as Announcement));
-            setAnnouncements(announcementsData);
+        const unsubscribe = onSnapshot(collection(db, 'announcements'), (snapshot) => {
+            const data = snapshot.docs.map(doc => {
+                const docData = doc.data();
+                return {
+                    ...docData,
+                    id: doc.id,
+                    date: docData.date.toDate().toISOString(),
+                } as Announcement
+            });
+            setAnnouncements(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
         });
-
         return () => unsubscribe();
     }, []);
 
     const addAnnouncement = useCallback(async (announcement: Omit<Announcement, 'id' | 'date'>) => {
-        const newAnnouncement = {
+        await addDoc(collection(db, 'announcements'), {
             ...announcement,
-            date: new Date().toISOString(),
-        };
-        await addDoc(collection(db, "announcements"), newAnnouncement);
+            date: serverTimestamp(),
+        });
     }, []);
     
     const contextValue = useMemo(() => ({

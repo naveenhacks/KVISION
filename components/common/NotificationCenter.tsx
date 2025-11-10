@@ -20,9 +20,9 @@ const NotificationCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
 
     useEffect(() => {
-        // When the component mounts, mark all visible notifications as read for the current user
         if (user && unreadCount > 0) {
-            const timer = setTimeout(() => markAsRead(user.id), 1000); // Small delay
+            // FIX: Pass user's role to markAsRead to ensure correct notifications are updated.
+            const timer = setTimeout(() => markAsRead(user.id, user.role), 1000);
             return () => clearTimeout(timer);
         }
     }, [user, markAsRead, unreadCount]);

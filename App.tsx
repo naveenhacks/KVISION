@@ -20,8 +20,8 @@ import { UserRole } from './types.ts';
 
 const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <HomeworkProvider>
           <MessageProvider>
             <NotificationProvider>
@@ -33,8 +33,8 @@ const App: React.FC = () => {
             </NotificationProvider>
           </MessageProvider>
         </HomeworkProvider>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 };
 

@@ -16,7 +16,7 @@ const LoadingSpinner: React.FC = () => (
 const LoginPage: React.FC = () => {
   const { role } = useParams<{ role: string }>();
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, isBackendConnected } = useContext(AuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +32,12 @@ const LoginPage: React.FC = () => {
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    if (!isBackendConnected) {
+        setError("Cannot connect to the server. Please check your connection.");
+        return;
+    }
+    
     setLoading(true);
 
     const result = await login(userRole, email, password);

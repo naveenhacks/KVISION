@@ -109,9 +109,6 @@
         },
       }
     </script>
-    <script type="text/javascript"
-        src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js">
-    </script>
   <script type="importmap">
 {
   "imports": {
@@ -123,17 +120,28 @@
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.0",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.552.0",
     "framer-motion": "https://aistudiocdn.com/framer-motion@^12.23.24",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js",
-    "firebase/analytics": "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js",
-    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+    "firebase/app": "https://aistudiocdn.com/firebase/app@^10.12.2",
+    "firebase/auth": "https://aistudiocdn.com/firebase/auth@^10.12.2",
+    "firebase/firestore": "https://aistudiocdn.com/firebase/firestore@^10.12.2",
     "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/"
   }
 }
 </script>
 </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:Poppins, sans-serif; background-color:#0a092d; color: #c0c0c0; text-align: center; padding: 1rem;">
+        <h1 style="font-size: 2rem; color: white; margin-bottom: 1rem; font-weight: 700;">KVISION</h1>
+        <p>Loading Kendriya Vidyalaya Unnao Platform...</p>
+        <p style="font-size: 0.8rem; margin-top: 2rem; max-width: 400px;">If this message persists, please ensure JavaScript is enabled and you are using a modern browser (like Chrome, Firefox, or Safari).</p>
+      </div>
+    </div>
+    <noscript>
+      <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:Poppins, sans-serif; background-color:#0a092d; color: #c0c0c0; text-align: center; padding: 1rem;">
+        <h1 style="font-size: 2rem; color: white; margin-bottom: 1rem; font-weight: 700;">JavaScript Required</h1>
+        <p>This application requires JavaScript to function. Please enable it in your browser settings and refresh the page.</p>
+      </div>
+    </noscript>
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

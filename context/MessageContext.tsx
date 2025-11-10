@@ -1,8 +1,9 @@
-import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo, useContext } from 'react';
-import { Message, User, UploadedFile, UserRole } from '../types.ts';
+import React, { createContext, useState, ReactNode, useCallback, useMemo, useContext, useEffect } from 'react';
+import { Message, User, UserRole } from '../types.ts';
 import { AuthContext } from './AuthContext.tsx';
-import { db } from '../services/firebase.ts';
-import { collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, setDoc, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+// FIX: Add setDoc to imports.
+import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, where, query, serverTimestamp, orderBy, writeBatch, setDoc } from 'firebase/firestore';
 
 
 export const generateConversationId = (userId1: string, userId2: string) => {
@@ -17,20 +18,15 @@ export interface Conversation {
 }
 
 interface MessageContextType {
-    conversations: Record<string, Message[]>;
+    conversations: Conversation[];
     sendMessage: (senderId: string, receiverId: string, content: Message['content']) => Promise<void>;
     deleteMessage: (conversationId: string, messageId: string) => Promise<void>;
     markConversationAsRead: (conversationId: string, readerId: string) => Promise<void>;
+    // FIX: Add getConversationsForUser to the context type to match the provided value.
     getConversationsForUser: (userId: string) => Conversation[];
 }
 
-export const MessageContext = createContext<MessageContextType>({
-    conversations: {},
-    sendMessage: async () => {},
-    deleteMessage: async () => {},
-    markConversationAsRead: async () => {},
-    getConversationsForUser: () => [],
-});
+export const MessageContext = createContext<MessageContextType>({} as MessageContextType);
 
 interface MessageProviderProps {
     children: ReactNode;
@@ -40,111 +36,108 @@ const ADMIN_VIRTUAL_USER_ID = 'kvision_admin_inbox';
 
 export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) => {
     const { user, users } = useContext(AuthContext);
-    const [conversations, setConversations] = useState<Record<string, Message[]>>({});
+    const [conversations, setConversations] = useState<Conversation[]>([]);
 
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            setConversations([]);
+            return;
+        }
+
+        // FIX: Use the virtual admin ID for admins to fetch all student conversations.
+        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : user.id;
+        const q = query(collection(db, "conversations"), where("participants", "array-contains", messageUserId));
         
-        const q = query(collection(db, 'conversations'), where('participants', 'array-contains', user.id));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const convos: Record<string, Message[]> = {};
-            snapshot.docs.forEach(doc => {
-                convos[doc.id] = doc.data().messages || [];
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const convos: Conversation[] = [];
+            const adminUser: User = { id: ADMIN_VIRTUAL_USER_ID, uid: ADMIN_VIRTUAL_USER_ID, name: 'KVISION Admin', email: '', role: UserRole.Admin };
+            const allUsers = [...users, adminUser];
+
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                const otherUserId = data.participants.find((p: string) => p !== messageUserId);
+                const otherUser = allUsers.find(u => u.id === otherUserId);
+                
+                if (otherUser) {
+                     const messages = (data.messages || []).map((msg: any) => ({
+                        ...msg,
+                        timestamp: msg.timestamp?.toDate ? msg.timestamp.toDate().toISOString() : new Date().toISOString()
+                    }));
+
+                    convos.push({
+                        id: doc.id,
+                        otherUser,
+                        messages,
+                        unreadCount: messages.filter((m: Message) => m.receiverId === user.id && m.status !== 'read').length
+                    });
+                }
             });
+            
+             convos.sort((a, b) => {
+                const lastMsgA = a.messages[a.messages.length - 1];
+                const lastMsgB = b.messages[b.messages.length - 1];
+                if (!lastMsgA) return 1;
+                if (!lastMsgB) return -1;
+                return new Date(lastMsgB.timestamp).getTime() - new Date(lastMsgA.timestamp).getTime();
+            });
+
             setConversations(convos);
         });
 
         return () => unsubscribe();
-    }, [user]);
+
+    }, [user, users]);
+
+    const getConversationsForUser = useCallback((userId: string): Conversation[] => {
+        // This function becomes a simple pass-through since the useEffect handles the logic now.
+        return conversations;
+    }, [conversations]);
 
     const sendMessage = useCallback(async (senderId: string, receiverId: string, content: Message['content']) => {
         const conversationId = generateConversationId(senderId, receiverId);
-        const conversationRef = doc(db, 'conversations', conversationId);
-
-        const newMessage: Message = {
-            id: `msg-${Date.now()}`,
+        const convoRef = doc(db, "conversations", conversationId);
+        
+        const newMessage: Omit<Message, 'id'> & { timestamp: any } = {
             content,
-            timestamp: new Date().toISOString(),
+            timestamp: serverTimestamp(),
             senderId,
             receiverId,
             status: 'sent',
         };
-
-        try {
-            await updateDoc(conversationRef, {
-                messages: arrayUnion(newMessage)
-            });
-        } catch (error) {
-            // If doc doesn't exist, create it
-            await setDoc(conversationRef, {
+        
+        const existingConvo = conversations.find(c => c.id === conversationId);
+        
+        if (existingConvo) {
+            const updatedMessages = [...existingConvo.messages, { ...newMessage, id: `msg-${Date.now()}` }];
+            await updateDoc(convoRef, { messages: updatedMessages });
+        } else {
+             await setDoc(convoRef, {
                 participants: [senderId, receiverId],
-                messages: [newMessage]
+                messages: [{...newMessage, id: `msg-${Date.now()}`}]
             });
         }
-    }, []);
+
+    }, [conversations]);
 
     const deleteMessage = useCallback(async (conversationId: string, messageId: string) => {
-        const conversationRef = doc(db, 'conversations', conversationId);
-        const convoMessages = conversations[conversationId] || [];
-        const messageToDelete = convoMessages.find(msg => msg.id === messageId);
-        
-        if (messageToDelete) {
-            await updateDoc(conversationRef, {
-                messages: arrayRemove(messageToDelete)
-            });
+        const convo = conversations.find(c => c.id === conversationId);
+        if (convo) {
+            const updatedMessages = convo.messages.filter(m => m.id !== messageId);
+            await updateDoc(doc(db, "conversations", conversationId), { messages: updatedMessages });
         }
     }, [conversations]);
 
     const markConversationAsRead = useCallback(async (conversationId: string, readerId: string) => {
-        const conversationRef = doc(db, 'conversations', conversationId);
-        const convoMessages = conversations[conversationId] || [];
-        
-        const updatedMessages = convoMessages.map(msg => 
-            msg.receiverId === readerId && msg.status !== 'read' 
-            ? { ...msg, status: 'read' as const } 
-            : msg
-        );
-
-        if (JSON.stringify(updatedMessages) !== JSON.stringify(convoMessages)) {
-             await updateDoc(conversationRef, { messages: updatedMessages });
+        const convo = conversations.find(c => c.id === conversationId);
+        if (convo) {
+            const updatedMessages = convo.messages.map(msg => 
+                msg.receiverId === readerId && msg.status !== 'read' 
+                ? { ...msg, status: 'read' as const } 
+                : msg
+            );
+            await updateDoc(doc(db, "conversations", conversationId), { messages: updatedMessages });
         }
     }, [conversations]);
-
-    const getConversationsForUser = useCallback((userId: string): Conversation[] => {
-        const adminUser: User = { id: ADMIN_VIRTUAL_USER_ID, name: 'KVISION Admin', email: '', role: UserRole.Admin };
-        const allUsers = [...users, adminUser];
-
-        const userConversations = Object.entries(conversations)
-            .filter(([id]) => id.includes(userId))
-            .map(([id, messages]) => {
-                const participantIds = id.split('--');
-                const otherUserId = participantIds.find(pId => pId !== userId);
-                const otherUser = allUsers.find(u => u.id === otherUserId);
-
-                if (!otherUser || !Array.isArray(messages)) return null;
-
-                const unreadCount = messages.filter(m => m.receiverId === userId && m.status !== 'read').length;
-
-                return {
-                    id,
-                    otherUser,
-                    messages,
-                    unreadCount,
-                };
-            })
-            .filter((c): c is Conversation => c !== null);
-
-        userConversations.sort((a, b) => {
-            const lastMsgA = a.messages[a.messages.length - 1];
-            const lastMsgB = b.messages[b.messages.length - 1];
-            if (!lastMsgA) return 1;
-            if (!lastMsgB) return -1;
-            return new Date(lastMsgB.timestamp).getTime() - new Date(lastMsgA.timestamp).getTime();
-        });
-
-        return userConversations;
-
-    }, [conversations, users]);
 
 
     const contextValue = useMemo(() => ({

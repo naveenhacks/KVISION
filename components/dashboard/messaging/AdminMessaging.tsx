@@ -1,4 +1,5 @@
 
+
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageContext, generateConversationId, Conversation } from '../../../context/MessageContext';
@@ -50,7 +51,9 @@ const AdminMessaging: React.FC<{
     const selectedUser = users.find(u => u.id === selectedUserId);
     
     const selectedConversationId = selectedUserId ? generateConversationId(ADMIN_MESSAGING_ID, selectedUserId) : null;
-    const selectedConversation = selectedConversationId ? conversations[selectedConversationId] || [] : [];
+    // FIX: Correctly find the conversation object from the array and then access its `messages` property.
+    // The original code was trying to access an array by a string key, which is incorrect.
+    const selectedConversation = conversations.find(c => c.id === selectedConversationId)?.messages || [];
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

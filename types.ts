@@ -12,13 +12,16 @@ export interface StudentData {
 
 export interface User {
   id: string; // Business logic ID (e.g., Apaar ID for students)
-  uid?: string; // Firebase Auth UID
+  uid: string; // Firebase Auth UID
   name: string;
   email: string;
   role: UserRole;
   password?: string;
   blocked?: boolean;
   studentData?: StudentData;
+  preferences?: {
+    theme: 'light' | 'dark';
+  }
 }
 
 export interface UploadedFile {
@@ -38,7 +41,7 @@ export interface Homework {
   teacherId: string;
   teacherName: string;
   file?: UploadedFile;
-  completed?: boolean;
+  completedBy?: string[];
 }
 
 export interface Announcement {

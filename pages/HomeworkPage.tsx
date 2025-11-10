@@ -122,14 +122,14 @@ const HomeworkPage: React.FC = () => {
     const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => e.currentTarget.classList.add('border-brand-light-purple');
     const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => e.currentTarget.classList.remove('border-brand-light-purple');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title || !course || !dueDate || !description || !user) {
             setError('Please fill out all required fields.');
             return;
         }
         
-        const homeworkData: Omit<Homework, 'id' | 'uploadDate' | 'completed'> = { 
+        const homeworkData: Omit<Homework, 'id' | 'uploadDate' | 'completedBy'> = { 
             title, 
             course, 
             dueDate, 
@@ -139,15 +139,18 @@ const HomeworkPage: React.FC = () => {
             file: file || undefined 
         };
 
-        if (isEditMode && id) {
-            updateHomework(id, homeworkData);
-            setAlert({ message: 'Homework updated successfully!', type: 'success' });
-        } else {
-            addHomework(homeworkData as Omit<Homework, 'id' | 'uploadDate'>);
-            setAlert({ message: 'Homework uploaded successfully!', type: 'success' });
+        try {
+            if (isEditMode && id) {
+                await updateHomework(id, homeworkData);
+                setAlert({ message: 'Homework updated successfully!', type: 'success' });
+            } else {
+                await addHomework(homeworkData);
+                setAlert({ message: 'Homework uploaded successfully!', type: 'success' });
+            }
+            setTimeout(() => navigate('/dashboard'), 1000);
+        } catch (err) {
+            setAlert({ message: 'Failed to save homework.', type: 'error' });
         }
-        
-        setTimeout(() => navigate('/dashboard'), 1000);
     };
 
     const containerVariants = {

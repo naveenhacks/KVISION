@@ -1,5 +1,8 @@
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
+import { AuthContext } from './AuthContext.tsx';
+import { db } from '../firebaseConfig.ts';
+import { doc, updateDoc } from 'firebase/firestore';
 
 type Theme = 'light' | 'dark';
 
@@ -18,23 +21,34 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const { user } = useContext(AuthContext);
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem('kvision-theme') as Theme | null;
-    // Set theme from localStorage if it exists, otherwise default to 'dark'.
-    setTheme(storedTheme || 'dark');
-  }, []);
+    // Set theme from user profile when available, otherwise default to dark
+    const userTheme = user?.preferences?.theme;
+    setTheme(userTheme || 'dark');
+  }, [user]);
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove(theme === 'dark' ? 'light' : 'dark');
     root.classList.add(theme);
-    localStorage.setItem('kvision-theme', theme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  const toggleTheme = async () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    if (user) {
+      try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, {
+          'preferences.theme': newTheme,
+        });
+      } catch (error) {
+        console.error("Failed to update theme preference:", error);
+      }
+    }
   };
 
   return (

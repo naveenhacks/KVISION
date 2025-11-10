@@ -21,7 +21,9 @@ const StudentDashboard: React.FC = () => {
     const { homeworks, toggleHomeworkCompletion } = useContext(HomeworkContext);
     const { announcements } = useContext(AnnouncementContext);
     
-    const sortedHomeworks = [...homeworks].sort((a, b) => (a.completed ? 1 : -1) - (b.completed ? 1 : -1) || new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+    const isCompleted = (hw: Homework) => user && hw.completedBy?.includes(user.id);
+
+    const sortedHomeworks = [...homeworks].sort((a, b) => (isCompleted(a) ? 1 : -1) - (isCompleted(b) ? 1 : -1) || new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -49,15 +51,17 @@ const StudentDashboard: React.FC = () => {
                     <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                         {sortedHomeworks.length > 0 ? (
                             <ul className="space-y-4 max-h-[400px] overflow-y-auto">
-                                {sortedHomeworks.map(hw => (
-                                    <li key={hw.id} className={`bg-white/5 p-4 rounded-lg border border-white/10 space-y-3 transition-opacity ${hw.completed ? 'opacity-50' : 'opacity-100'}`}>
+                                {sortedHomeworks.map(hw => {
+                                    const completed = isCompleted(hw);
+                                    return (
+                                    <li key={hw.id} className={`bg-white/5 p-4 rounded-lg border border-white/10 space-y-3 transition-opacity ${completed ? 'opacity-50' : 'opacity-100'}`}>
                                         <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                                             <div className="flex items-start space-x-3">
-                                                <button onClick={() => toggleHomeworkCompletion(hw.id)} className={`mt-1 flex-shrink-0 w-6 h-6 rounded-md border-2 transition-colors flex items-center justify-center ${hw.completed ? 'bg-brand-neon-purple border-brand-neon-purple' : 'border-brand-silver-gray hover:border-brand-light-purple'}`}>
-                                                    {hw.completed && <Check size={16} className="text-white"/>}
+                                                <button onClick={() => toggleHomeworkCompletion(hw.id)} className={`mt-1 flex-shrink-0 w-6 h-6 rounded-md border-2 transition-colors flex items-center justify-center ${completed ? 'bg-brand-neon-purple border-brand-neon-purple' : 'border-brand-silver-gray hover:border-brand-light-purple'}`}>
+                                                    {completed && <Check size={16} className="text-white"/>}
                                                 </button>
                                                 <div>
-                                                    <p className={`font-semibold text-white transition-all ${hw.completed ? 'line-through' : ''}`}>{hw.title}</p>
+                                                    <p className={`font-semibold text-white transition-all ${completed ? 'line-through' : ''}`}>{hw.title}</p>
                                                     <p className="text-sm text-brand-silver-gray">{hw.course} - by {hw.teacherName}</p>
                                                 </div>
                                             </div>
@@ -77,7 +81,7 @@ const StudentDashboard: React.FC = () => {
                                             </div>
                                         )}
                                     </li>
-                                ))}
+                                )})}
                             </ul>
                         ) : (
                             <div className="flex items-center justify-center h-full">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 // FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -22,7 +21,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 // FIX: Changed icon prop type from React.ReactNode to React.ReactElement to resolve cloneElement error.
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactElement; color: string }> = ({ title, value, icon, color }) => (
     <div className="bg-brand-light-blue p-5 rounded-xl border border-white/10 flex items-center space-x-4 transform transition-transform hover:-translate-y-1 h-full">
-        <div className={`p-3 bg-${color}-500/20 rounded-full`}>{React.cloneElement(icon, { className: `text-${color}-400` })}</div>
+        {/* FIX: Cast icon to React.ReactElement<any> to satisfy TypeScript's type checking for cloneElement. This is safe because lucide-react icons accept a className prop. */}
+        <div className={`p-3 bg-${color}-500/20 rounded-full`}>{React.cloneElement(icon as React.ReactElement<any>, { className: `text-${color}-400` })}</div>
         <div>
             <p className="text-brand-silver-gray text-sm">{title}</p>
             <p className="text-2xl font-bold text-white">{value}</p>
@@ -408,8 +408,9 @@ const UserManagementTable: React.FC<{
 
 
 const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }> = ({ onMessageUser }) => {
-    const { users, updateUsers, addTeacher, deleteUser } = useContext(AuthContext);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { users, updateUser, addTeacher, addStudent, deleteUser } = useContext(AuthContext);
+    const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
+    const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [currentUser, setCurrentUser] = useState<Partial<User> | null>(null);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -417,67 +418,67 @@ const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }>
     const [roleFilter, setRoleFilter] = useState('all');
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-    const handleAddUser = () => {
+    const handleAddTeacher = () => {
         setModalMode('add');
         setCurrentUser({ name: '', email: '', role: UserRole.Teacher, password: '' });
-        setIsModalOpen(true);
+        setIsTeacherModalOpen(true);
     };
 
     const handleEditUser = (user: User) => {
         setModalMode('edit');
         setCurrentUser(user);
-        setIsModalOpen(true);
+        if (user.role === UserRole.Teacher) setIsTeacherModalOpen(true);
+        if (user.role === UserRole.Student) setIsStudentModalOpen(true);
     };
 
     const handleRemoveClick = (user: User) => {
         setUserToDelete(user);
     };
 
-    const confirmRemoveUser = async () => {
+    const confirmRemoveUser = () => {
         if (!userToDelete) return;
-        try {
-            await deleteUser(userToDelete.id);
-            setAlert({ message: `User "${userToDelete.name}" removed successfully.`, type: 'success' });
-        } catch (error) {
-            const err = error as Error;
-            setAlert({ message: err.message || `Failed to remove user. Please try again.`, type: 'error' });
-        }
-        setUserToDelete(null);
+        deleteUser(userToDelete.id, userToDelete.uid)
+            .then(() => {
+                 setAlert({ message: `User "${userToDelete.name}" removed successfully.`, type: 'success' });
+            })
+            .catch((error) => {
+                 setAlert({ message: error.message || `Failed to remove user.`, type: 'error' });
+            })
+            .finally(() => {
+                setUserToDelete(null);
+            });
     };
     
     const handleToggleBlock = (userId: string) => {
         const userToBlock = users.find(u => u.id === userId);
         if (userToBlock) {
-            updateUsers(prevUsers =>
-                prevUsers.map(u =>
-                    u.id === userId ? { ...u, blocked: !u.blocked } : u
-                )
-            );
+            updateUser(userId, { blocked: !userToBlock.blocked });
             setAlert({ message: `User "${userToBlock.name}" has been ${userToBlock.blocked ? 'unblocked' : 'blocked'}.`, type: 'success' });
         }
     };
 
     const handleSaveUser = async (userData: Partial<User>): Promise<User | void> => {
-        if (modalMode === 'add') {
-            if (userData.role === UserRole.Teacher && userData.name && userData.email && userData.password) {
-                try {
+        try {
+            if (modalMode === 'add') {
+                if (userData.role === UserRole.Teacher && userData.name && userData.email && userData.password) {
                     const newTeacher = await addTeacher(userData.name, userData.email, userData.password);
                     setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
                     return newTeacher;
-                } catch (err: any) {
-                     setAlert({ message: err.message || 'Failed to add teacher.', type: 'error' });
-                     return;
                 }
+            } else {
+                await updateUser(userData.id!, userData);
+                setAlert({ message: `User "${userData.name}" updated successfully.`, type: 'success' });
+                setIsTeacherModalOpen(false);
+                setIsStudentModalOpen(false);
             }
-        } else { // Edit mode
-            updateUsers(prevUsers => prevUsers.map(u => (u.id === userData.id ? { ...u, ...userData } as User : u)));
-            setAlert({ message: `User "${userData.name}" updated successfully.`, type: 'success' });
-            setIsModalOpen(false);
+        } catch (err: any) {
+            setAlert({ message: err.message || 'An error occurred.', type: 'error' });
         }
     };
 
     const filteredUsers = useMemo(() => {
         return users
+            .filter(user => user.role !== UserRole.Admin) // Admins not managed here
             .filter(user => roleFilter === 'all' || user.role === roleFilter)
             .filter(user => user.name.toLowerCase().includes(searchTerm.toLowerCase()) || user.email.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [users, roleFilter, searchTerm]);
@@ -508,7 +509,7 @@ const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }>
                             <option value={UserRole.Student}>Students</option>
                             <option value={UserRole.Teacher}>Teachers</option>
                         </select>
-                         <button onClick={handleAddUser} className="flex items-center justify-center space-x-2 bg-brand-neon-purple text-white px-4 py-2.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-semibold whitespace-nowrap">
+                         <button onClick={handleAddTeacher} className="flex items-center justify-center space-x-2 bg-brand-neon-purple text-white px-4 py-2.5 rounded-lg hover:bg-opacity-80 transition-colors text-sm font-semibold whitespace-nowrap">
                             <UserPlus size={18}/> <span>Add Teacher</span>
                         </button>
                     </div>
@@ -521,7 +522,8 @@ const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }>
                     onMessage={(userId) => users.find(u => u.id === userId)?.role === UserRole.Student ? onMessageUser(userId) : undefined}
                 />
             </div>
-            <TeacherModal isOpen={isModalOpen} mode={modalMode} user={currentUser} onSave={handleSaveUser} onClose={() => setIsModalOpen(false)}/>
+            <TeacherModal isOpen={isTeacherModalOpen} mode={modalMode} user={currentUser} onSave={handleSaveUser} onClose={() => setIsTeacherModalOpen(false)}/>
+            <StudentModal isOpen={isStudentModalOpen} mode={modalMode} user={currentUser} onSave={handleSaveUser as any} onClose={() => setIsStudentModalOpen(false)}/>
         </div>
     );
 };
@@ -535,15 +537,12 @@ const HomeworkControl = () => {
         setItemToDelete(homework);
     };
 
-    const confirmRemove = async () => {
+    const confirmRemove = () => {
         if (!itemToDelete) return;
-        try {
-            await deleteHomework(itemToDelete.id);
-            setAlert({ message: 'Homework removed successfully.', type: 'success' });
-        } catch (error) {
-            setAlert({ message: 'Failed to remove homework.', type: 'error' });
-        }
-        setItemToDelete(null);
+        deleteHomework(itemToDelete.id)
+            .then(() => setAlert({ message: 'Homework removed successfully.', type: 'success' }))
+            .catch(() => setAlert({ message: 'Failed to remove homework.', type: 'error' }))
+            .finally(() => setItemToDelete(null));
     };
 
     return (
@@ -607,7 +606,7 @@ const HomeworkControl = () => {
 };
 
 const AdminTeacherManagement: React.FC = () => {
-    const { users, updateUsers, addTeacher, deleteUser } = useContext(AuthContext);
+    const { users, updateUser, addTeacher, deleteUser } = useContext(AuthContext);
     const teachers = users.filter(u => u.role === UserRole.Teacher);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -626,31 +625,31 @@ const AdminTeacherManagement: React.FC = () => {
         setIsModalOpen(true);
     };
     const handleSave = async (userData: Partial<User>): Promise<User | void> => {
-        if (modalMode === 'add') {
-             if (userData.name && userData.email && userData.password) {
-                 try {
-                    const newTeacher = await addTeacher(userData.name, userData.email, userData.password);
-                    setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
-                    return newTeacher;
-                 } catch (err: any) {
-                     setAlert({ message: err.message || 'Failed to add teacher.', type: 'error' });
-                     return;
-                 }
+        try {
+            if (modalMode === 'add') {
+                if (userData.name && userData.email && userData.password) {
+                        const newTeacher = await addTeacher(userData.name, userData.email, userData.password);
+                        setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
+                        return newTeacher;
+                }
+            } else {
+                await updateUser(userData.id!, userData);
+                setAlert({ message: `Teacher "${userData.name}" updated.`, type: 'success' });
+                setIsModalOpen(false);
             }
-        } else {
-            updateUsers(prev => prev.map(u => (u.id === userData.id ? { ...u, ...userData } as User : u)));
-            setAlert({ message: `Teacher "${userData.name}" updated.`, type: 'success' });
-            setIsModalOpen(false);
+        } catch (err: any) {
+            setAlert({ message: err.message || 'Failed to save teacher.', type: 'error' });
         }
     };
-    const handleConfirmDelete = async () => {
+    const handleConfirmDelete = () => {
         if (!userToDelete) return;
-        await deleteUser(userToDelete.id);
-        setAlert({ message: `Teacher "${userToDelete.name}" deleted.`, type: 'success' });
-        setUserToDelete(null);
+        deleteUser(userToDelete.id, userToDelete.uid)
+            .then(() => setAlert({ message: `Teacher "${userToDelete.name}" deleted.`, type: 'success' }))
+            .finally(() => setUserToDelete(null));
     };
     const handleToggleBlock = (userId: string) => {
-        updateUsers(prev => prev.map(u => u.id === userId ? { ...u, blocked: !u.blocked } : u));
+        const user = users.find(u => u.id === userId);
+        if (user) updateUser(userId, { blocked: !user.blocked });
     };
 
     return (
@@ -670,7 +669,7 @@ const AdminTeacherManagement: React.FC = () => {
 };
 
 const AdminStudentManagement: React.FC<{ onMessageUser: (userId: string) => void }> = ({ onMessageUser }) => {
-    const { users, updateUsers, addStudent, deleteUser } = useContext(AuthContext);
+    const { users, updateUser, addStudent, deleteUser } = useContext(AuthContext);
     const students = users.filter(u => u.role === UserRole.Student);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
@@ -689,31 +688,31 @@ const AdminStudentManagement: React.FC<{ onMessageUser: (userId: string) => void
         setIsModalOpen(true);
     };
     const handleSave = async (userData: Partial<User>): Promise<User | void> => {
-        if (modalMode === 'add') {
-             if (userData.name && userData.id && userData.password) {
-                 try {
-                    const newStudent = await addStudent(userData.name, userData.id, userData.password);
-                    setAlert({ message: `Student "${newStudent.name}" added successfully.`, type: 'success' });
-                    return newStudent;
-                 } catch (err: any) {
-                    setAlert({ message: err.message || 'Failed to add student.', type: 'error' });
-                    return;
-                 }
+        try {
+            if (modalMode === 'add') {
+                if (userData.name && userData.id && userData.password) {
+                        const newStudent = await addStudent(userData.name, userData.id, userData.password);
+                        setAlert({ message: `Student "${newStudent.name}" added successfully.`, type: 'success' });
+                        return newStudent;
+                }
+            } else {
+                await updateUser(userData.id!, { name: userData.name, password: userData.password });
+                setAlert({ message: `Student "${userData.name}" updated.`, type: 'success' });
+                setIsModalOpen(false);
             }
-        } else {
-            updateUsers(prev => prev.map(u => (u.id === userData.id ? { ...u, name: userData.name, password: userData.password } as User : u)));
-            setAlert({ message: `Student "${userData.name}" updated.`, type: 'success' });
-            setIsModalOpen(false);
+        } catch (err: any) {
+            setAlert({ message: err.message || 'Failed to add student.', type: 'error' });
         }
     };
-     const handleConfirmDelete = async () => {
+     const handleConfirmDelete = () => {
         if (!userToDelete) return;
-        await deleteUser(userToDelete.id);
-        setAlert({ message: `Student "${userToDelete.name}" deleted.`, type: 'success' });
-        setUserToDelete(null);
+        deleteUser(userToDelete.id, userToDelete.uid)
+            .then(() => setAlert({ message: `Student "${userToDelete.name}" deleted.`, type: 'success' }))
+            .finally(() => setUserToDelete(null));
     };
     const handleToggleBlock = (userId: string) => {
-        updateUsers(prev => prev.map(u => u.id === userId ? { ...u, blocked: !u.blocked } : u));
+        const user = users.find(u => u.id === userId);
+        if (user) updateUser(userId, { blocked: !user.blocked });
     };
 
     return (

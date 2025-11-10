@@ -1,8 +1,8 @@
-import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo, useContext } from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useMemo, useContext, useEffect } from 'react';
 import { HomepageContent, PrincipalInfo, TextBlock, Stat, HomepageAnnouncement, GalleryImage, ContactInfo, User } from '../types.ts';
 import { AuthContext } from './AuthContext.tsx';
-import { db } from '../services/firebase.ts';
-import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+import { doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
 export interface LandingPageContextType {
     content: HomepageContent;
@@ -36,82 +36,77 @@ const getDefaultContent = (): HomepageContent => ({
     contactInfo: { schoolName: 'PM Shree Kendriya Vidyalaya Unnao', address: 'Dahi Chowki, Unnao – 209801', email: 'kvunnao85@gmail.com', phone: '+91 0515-2826444', website: 'unnao.kvs.ac.in' }
 });
 
+const contentDocRef = doc(db, 'homepage', 'content');
+
 export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [content, setContent] = useState<HomepageContent>(getDefaultContent);
     const { users } = useContext(AuthContext);
-    const docRef = doc(db, 'homepage', 'content');
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(docRef, (doc) => {
+        const ensureDocExists = async () => {
+            const docSnap = await getDoc(contentDocRef);
+            if (!docSnap.exists()) {
+                await setDoc(contentDocRef, getDefaultContent());
+            }
+        };
+        ensureDocExists();
+        
+        const unsubscribe = onSnapshot(contentDocRef, (doc) => {
             if (doc.exists()) {
-                const data = doc.data() as HomepageContent;
-                // Hydrate author names
-                const hydrateItems = (items: (HomepageAnnouncement[] | GalleryImage[]), allUsers: User[]) => 
-                    items.map((item: HomepageAnnouncement | GalleryImage) => {
-                        const author = allUsers.find(u => u.id === item.submittedBy);
-                        return { ...item, authorName: author?.name || 'Unknown Contributor' };
-                    });
-                
-                setContent({
-                    ...data,
-                    announcements: hydrateItems(data.announcements, users),
-                    galleryImages: hydrateItems(data.galleryImages, users),
-                });
-            } else {
-                console.log("No homepage content found, seeding default content.");
-                setDoc(docRef, getDefaultContent());
+                setContent(doc.data() as HomepageContent);
             }
         });
         return () => unsubscribe();
-    }, [users]);
+    }, []);
 
     const createId = () => `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-    const updatePrincipalInfo = useCallback(async (info: Partial<PrincipalInfo>) => {
-        await updateDoc(docRef, { principalInfo: { ...content.principalInfo, ...info } });
-    }, [content.principalInfo]);
     
-    const updateTextBlock = useCallback(async (key: 'vision' | 'mission' | 'coreValues', data: TextBlock) => {
-        await updateDoc(docRef, { [key]: data });
-    }, []);
-
-    const updateStats = useCallback(async (stats: Stat[]) => await updateDoc(docRef, { stats }), []);
-    
-    const addAnnouncement = useCallback(async (announcement: Omit<HomepageAnnouncement, 'id'>) => {
-        const newAnnouncement = { ...announcement, id: createId() };
-        await updateDoc(docRef, { announcements: arrayUnion(newAnnouncement) });
-    }, []);
-
-    const updateItems = async (key: 'announcements' | 'galleryImages', id: string, updates: any) => {
-        const currentItems = (content[key] as any[]).map(item => item.id === id ? { ...item, ...updates } : item);
-        await updateDoc(docRef, { [key]: currentItems });
+    const updateFirestore = async (data: Partial<HomepageContent>) => {
+        await updateDoc(contentDocRef, data);
     };
 
-    const updateAnnouncement = (id: string, updates: Partial<HomepageAnnouncement>) => updateItems('announcements', id, updates);
+    const updatePrincipalInfo = async (info: Partial<PrincipalInfo>) => updateFirestore({ principalInfo: { ...content.principalInfo, ...info } });
+    const updateTextBlock = async (key: 'vision' | 'mission' | 'coreValues', data: TextBlock) => updateFirestore({ [key]: data });
+    const updateStats = async (stats: Stat[]) => updateFirestore({ stats });
+    const updateContactInfo = async (info: ContactInfo) => updateFirestore({ contactInfo: info });
 
-    const deleteAnnouncement = useCallback(async (id: string) => {
-        const itemToDelete = content.announcements.find(a => a.id === id);
-        if (itemToDelete) await updateDoc(docRef, { announcements: arrayRemove(itemToDelete) });
-    }, [content.announcements]);
-    
-    const addImage = useCallback(async (image: Omit<GalleryImage, 'id'>) => {
-        const newImage = { ...image, id: createId() };
-        await updateDoc(docRef, { galleryImages: arrayUnion(newImage) });
-    }, []);
-    
-    const deleteImage = useCallback(async (id: string) => {
-        const itemToDelete = content.galleryImages.find(img => img.id === id);
-        if (itemToDelete) await updateDoc(docRef, { galleryImages: arrayRemove(itemToDelete) });
-    }, [content.galleryImages]);
-    
-    const updateSubmissionStatus = (type: 'announcements' | 'galleryImages', id: string, status: 'approved' | 'rejected') => updateItems(type, id, { status });
+    const addAnnouncement = async (announcement: Omit<HomepageAnnouncement, 'id'>) => {
+        const author = users.find(u => u.id === announcement.submittedBy);
+        const newAnnouncement = { ...announcement, id: createId(), authorName: author?.name || 'Unknown' };
+        await updateFirestore({ announcements: [...content.announcements, newAnnouncement] });
+    };
 
-    const updateContactInfo = useCallback(async (info: ContactInfo) => await updateDoc(docRef, { contactInfo: info }), []);
+    const updateAnnouncement = async (id: string, updates: Partial<HomepageAnnouncement>) => {
+        const newAnnouncements = content.announcements.map(a => a.id === id ? { ...a, ...updates } : a);
+        await updateFirestore({ announcements: newAnnouncements });
+    };
+
+    const deleteAnnouncement = async (id: string) => {
+        const newAnnouncements = content.announcements.filter(a => a.id !== id);
+        await updateFirestore({ announcements: newAnnouncements });
+    };
+
+    const addImage = async (image: Omit<GalleryImage, 'id'>) => {
+        const author = users.find(u => u.id === image.submittedBy);
+        const newImage = { ...image, id: createId(), authorName: author?.name || 'Unknown' };
+        await updateFirestore({ galleryImages: [...content.galleryImages, newImage] });
+    };
+
+    const deleteImage = async (id: string) => {
+        const newImages = content.galleryImages.filter(img => img.id !== id);
+        await updateFirestore({ galleryImages: newImages });
+    };
+
+    const updateSubmissionStatus = async (type: 'announcements' | 'galleryImages', id: string, status: 'approved' | 'rejected') => {
+        const key = type as 'announcements' | 'galleryImages';
+        const updatedItems = (content[key] as any[]).map(item => item.id === id ? { ...item, status } : item);
+        await updateFirestore({ [key]: updatedItems });
+    };
 
     const contextValue = useMemo(() => ({
         content, updatePrincipalInfo, updateTextBlock, updateStats, addAnnouncement,
         updateAnnouncement, deleteAnnouncement, addImage, deleteImage, updateSubmissionStatus, updateContactInfo,
-    }), [content, updatePrincipalInfo, updateTextBlock, updateStats, addAnnouncement, updateAnnouncement, deleteAnnouncement, addImage, deleteImage, updateSubmissionStatus, updateContactInfo]);
+    }), [content, users]);
 
     return (
         <LandingPageContext.Provider value={contextValue}>

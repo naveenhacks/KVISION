@@ -42,7 +42,7 @@ const ProfilePage: React.FC = () => {
         if (!user) return;
 
         setLoading(true);
-        const result = await updatePassword(user.id, currentPassword, newPassword);
+        const result = await updatePassword(currentPassword, newPassword);
         setLoading(false);
 
         if (result.success) {

@@ -1,2 +1,2 @@
-// This file is no longer needed as mock data has been replaced by a persistent database connection.
-// All user data is now managed in `AuthContext` and stored in Firestore.
+// This file has been cleared as part of a backend decoupling process.
+// All mock data has been moved into the relevant contexts to support local state management.

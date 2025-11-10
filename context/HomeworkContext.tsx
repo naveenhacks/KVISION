@@ -1,25 +1,19 @@
-import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect, useContext } from 'react';
 import { Homework } from '../types.ts';
-import { db } from '../services/firebase.ts';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from '../firebaseConfig.ts';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { AuthContext } from './AuthContext.tsx';
 
 interface HomeworkContextType {
     homeworks: Homework[];
-    addHomework: (homework: Omit<Homework, 'id' | 'uploadDate'>) => Promise<void>;
+    addHomework: (homework: Omit<Homework, 'id' | 'uploadDate' | 'completedBy'>) => Promise<void>;
     updateHomework: (id: string, updates: Partial<Homework>) => Promise<void>;
     deleteHomework: (id: string) => Promise<void>;
     getHomeworkById: (id: string) => Homework | undefined;
     toggleHomeworkCompletion: (id: string) => Promise<void>;
 }
 
-export const HomeworkContext = createContext<HomeworkContextType>({
-    homeworks: [],
-    addHomework: async () => {},
-    updateHomework: async () => {},
-    deleteHomework: async () => {},
-    getHomeworkById: () => undefined,
-    toggleHomeworkCompletion: async () => {},
-});
+export const HomeworkContext = createContext<HomeworkContextType>({} as HomeworkContextType);
 
 interface HomeworkProviderProps {
     children: ReactNode;
@@ -27,37 +21,31 @@ interface HomeworkProviderProps {
 
 export const HomeworkProvider: React.FC<HomeworkProviderProps> = ({ children }) => {
     const [homeworks, setHomeworks] = useState<Homework[]>([]);
+    const { user } = useContext(AuthContext);
 
     useEffect(() => {
-        const q = query(collection(db, "homework"), orderBy("uploadDate", "desc"));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const homeworksData = snapshot.docs.map(doc => ({
-                ...doc.data(),
-                id: doc.id
-            } as Homework));
+        const unsubscribe = onSnapshot(collection(db, 'homeworks'), (snapshot) => {
+            const homeworksData = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Homework));
             setHomeworks(homeworksData);
         });
-
         return () => unsubscribe();
     }, []);
 
-    const addHomework = useCallback(async (homework: Omit<Homework, 'id' | 'uploadDate'>) => {
+    const addHomework = useCallback(async (homework: Omit<Homework, 'id' | 'uploadDate' | 'completedBy'>) => {
         const newHomework = {
             ...homework,
             uploadDate: new Date().toISOString(),
-            completed: false,
+            completedBy: [],
         };
-        await addDoc(collection(db, "homework"), newHomework);
+        await addDoc(collection(db, 'homeworks'), newHomework);
     }, []);
     
     const updateHomework = useCallback(async (id: string, updates: Partial<Homework>) => {
-        const homeworkDoc = doc(db, "homework", id);
-        await updateDoc(homeworkDoc, updates);
+        await updateDoc(doc(db, 'homeworks', id), updates);
     }, []);
 
     const deleteHomework = useCallback(async (id: string) => {
-        const homeworkDoc = doc(db, "homework", id);
-        await deleteDoc(homeworkDoc);
+        await deleteDoc(doc(db, 'homeworks', id));
     }, []);
 
     const getHomeworkById = useCallback((id: string) => {
@@ -65,12 +53,15 @@ export const HomeworkProvider: React.FC<HomeworkProviderProps> = ({ children }) 
     }, [homeworks]);
 
     const toggleHomeworkCompletion = useCallback(async (id: string) => {
+        if (!user) return;
         const homework = homeworks.find(hw => hw.id === id);
-        if (homework) {
-            const homeworkDoc = doc(db, "homework", id);
-            await updateDoc(homeworkDoc, { completed: !homework.completed });
-        }
-    }, [homeworks]);
+        if (!homework) return;
+
+        const isCompleted = homework.completedBy?.includes(user.id);
+        await updateDoc(doc(db, 'homeworks', id), {
+            completedBy: isCompleted ? arrayRemove(user.id) : arrayUnion(user.id)
+        });
+    }, [user, homeworks]);
 
     const contextValue = useMemo(() => ({
         homeworks,

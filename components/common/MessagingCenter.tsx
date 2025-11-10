@@ -42,7 +42,7 @@ const FileMessage: React.FC<{ file: UploadedFile, isSender: boolean }> = ({ file
 
 const MessagingCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { user, users } = useContext(AuthContext);
-    const { getConversationsForUser, sendMessage, markConversationAsRead, deleteMessage } = useContext(MessageContext);
+    const { conversations, sendMessage, markConversationAsRead, deleteMessage } = useContext(MessageContext);
 
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [messageText, setMessageText] = useState('');
@@ -53,8 +53,6 @@ const MessagingCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
 
-    const conversations = useMemo(() => user ? getConversationsForUser(user.id) : [], [user, getConversationsForUser]);
-    
     const contacts = useMemo(() => {
         if (!user) return [];
         const roleToList = user.role === UserRole.Student ? UserRole.Teacher : UserRole.Student;

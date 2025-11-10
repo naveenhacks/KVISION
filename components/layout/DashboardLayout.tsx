@@ -29,8 +29,8 @@ const ThemeToggle = () => {
 };
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout } = useContext(AuthContext);
-  const { getConversationsForUser } = useContext(MessageContext);
+  const { user, logout, isBackendConnected } = useContext(AuthContext);
+  const { conversations } = useContext(MessageContext);
   const { getUnreadCount } = useContext(NotificationContext);
   const navigate = useNavigate();
   const [isMessagingCenterOpen, setIsMessagingCenterOpen] = useState(false);
@@ -47,14 +47,18 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const unreadMessagesCount = useMemo(() => {
     if (!user) return 0;
-    const conversations = getConversationsForUser(user.id);
     return conversations.reduce((acc, convo) => acc + convo.unreadCount, 0);
-  }, [getConversationsForUser, user]);
+  }, [conversations, user]);
 
   const unreadNotificationsCount = user ? getUnreadCount(user.role, user.id) : 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-light-blue dark:bg-brand-deep-blue">
+      {!isBackendConnected && (
+        <div className="bg-yellow-500 text-black text-center p-2 font-semibold text-sm">
+          ⚠️ Backend not connected yet
+        </div>
+      )}
       <header className="sticky top-0 z-50 bg-brand-deep-blue/50 dark:bg-brand-deep-blue/80 backdrop-blur-lg border-b border-white/10 shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

@@ -1,12 +1,11 @@
-
 import React, { useState, useContext, useRef, useEffect } from 'react';
 // FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { Bot, Send, X } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { UserRole } from '../../types.ts';
-import { getNaviAiResponse } from '../../services/geminiService.ts';
 import { MarkdownRenderer } from './MarkdownRenderer.tsx';
+import { getAiResponse } from '../../services/geminiService.ts';
 
 interface Message {
   sender: 'user' | 'ai';
@@ -59,7 +58,7 @@ const NaviAiWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const aiResponse = await getNaviAiResponse(currentInput, user.role);
+            const aiResponse = await getAiResponse(currentInput, user.role);
             const aiMessage: Message = { sender: 'ai', text: aiResponse };
             setMessages(prev => [...prev, aiMessage]);
         } catch (error) {
