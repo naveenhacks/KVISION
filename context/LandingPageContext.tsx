@@ -111,7 +111,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
     const contextValue = useMemo(() => ({
         content, updatePrincipalInfo, updateTextBlock, updateStats, addAnnouncement,
         updateAnnouncement, deleteAnnouncement, addImage, deleteImage, updateSubmissionStatus, updateContactInfo,
-    }), [content]);
+    }), [content, updatePrincipalInfo, updateTextBlock, updateStats, addAnnouncement, updateAnnouncement, deleteAnnouncement, addImage, deleteImage, updateSubmissionStatus, updateContactInfo]);
 
     return (
         <LandingPageContext.Provider value={contextValue}>
