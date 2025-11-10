@@ -1,21 +1,22 @@
-
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Notification, UserRole } from '../types.ts';
+import { db } from '../services/firebase.ts';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, arrayUnion, query, orderBy } from 'firebase/firestore';
 
 interface NotificationContextType {
     notifications: Notification[];
-    addNotification: (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => void;
-    deleteNotification: (id: string) => void;
-    markAsRead: (userId: string) => void;
-    getUnreadCount: (userId: string) => number;
+    addNotification: (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => Promise<void>;
+    deleteNotification: (id: string) => Promise<void>;
+    markAsRead: (userId: string) => Promise<void>;
+    getUnreadCount: (userRole: UserRole, userId: string) => number;
     getNotificationsForUser: (userRole: UserRole, userId: string) => Notification[];
 }
 
 export const NotificationContext = createContext<NotificationContextType>({
     notifications: [],
-    addNotification: () => {},
-    deleteNotification: () => {},
-    markAsRead: () => {},
+    addNotification: async () => {},
+    deleteNotification: async () => {},
+    markAsRead: async () => {},
     getUnreadCount: () => 0,
     getNotificationsForUser: () => [],
 });
@@ -24,60 +25,52 @@ interface NotificationProviderProps {
     children: ReactNode;
 }
 
-const NOTIFICATIONS_STORAGE_KEY = 'kvision-notifications';
-
-const getInitialNotifications = (): Notification[] => {
-    try {
-        const stored = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-        return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-        console.error("Failed to parse notifications from localStorage", error);
-        return [];
-    }
-};
-
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
-    const [notifications, setNotifications] = useState<Notification[]>(getInitialNotifications);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
 
     useEffect(() => {
-        try {
-            localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifications));
-        } catch (error) {
-            console.error("Failed to save notifications to localStorage", error);
-        }
-    }, [notifications]);
+        const q = query(collection(db, "notifications"), orderBy("date", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const notificationsData = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            } as Notification));
+            setNotifications(notificationsData);
+        });
+        return () => unsubscribe();
+    }, []);
 
-    const addNotification = useCallback((notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => {
-        const newNotification: Notification = {
+    const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => {
+        const newNotification = {
             ...notification,
-            id: `notif-${Date.now()}`,
             date: new Date().toISOString(),
             readBy: [],
         };
-        setNotifications(prev => [newNotification, ...prev]);
+        await addDoc(collection(db, "notifications"), newNotification);
     }, []);
 
-    const deleteNotification = useCallback((id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+    const deleteNotification = useCallback(async (id: string) => {
+        await deleteDoc(doc(db, "notifications", id));
     }, []);
 
     const getNotificationsForUser = useCallback((userRole: UserRole, userId: string): Notification[] => {
-        return notifications
-            .filter(n => n.target === 'all' || n.target === userRole)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        return notifications.filter(n => n.target === 'all' || n.target === userRole);
     }, [notifications]);
 
-    const getUnreadCount = useCallback((userId: string): number => {
-        return notifications.filter(n => !n.readBy.includes(userId)).length;
-    }, [notifications]);
+    const getUnreadCount = useCallback((userRole: UserRole, userId: string): number => {
+        const userNotifs = getNotificationsForUser(userRole, userId);
+        return userNotifs.filter(n => !n.readBy.includes(userId)).length;
+    }, [notifications, getNotificationsForUser]);
 
-    const markAsRead = useCallback((userId: string) => {
-        setNotifications(prev => 
-            prev.map(n => 
-                n.readBy.includes(userId) ? n : { ...n, readBy: [...n.readBy, userId] }
-            )
-        );
-    }, []);
+    const markAsRead = useCallback(async (userId: string) => {
+        const unreadNotifs = notifications.filter(n => !n.readBy.includes(userId));
+        for (const notif of unreadNotifs) {
+            const notifRef = doc(db, "notifications", notif.id);
+            await updateDoc(notifRef, {
+                readBy: arrayUnion(userId)
+            });
+        }
+    }, [notifications]);
 
     const contextValue = useMemo(() => ({
         notifications,

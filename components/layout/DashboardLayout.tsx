@@ -1,4 +1,3 @@
-
 import React, { useContext, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext.tsx';
@@ -52,7 +51,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return conversations.reduce((acc, convo) => acc + convo.unreadCount, 0);
   }, [getConversationsForUser, user]);
 
-  const unreadNotificationsCount = user ? getUnreadCount(user.id) : 0;
+  const unreadNotificationsCount = user ? getUnreadCount(user.role, user.id) : 0;
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-light-blue dark:bg-brand-deep-blue">

@@ -1,96 +1,76 @@
-
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Homework } from '../types.ts';
-import { apiDelete } from '../services/apiService.ts';
+import { db } from '../services/firebase.ts';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 
 interface HomeworkContextType {
     homeworks: Homework[];
-    addHomework: (homework: Omit<Homework, 'id' | 'uploadDate'>) => void;
-    updateHomework: (id: string, updates: Partial<Homework>) => void;
+    addHomework: (homework: Omit<Homework, 'id' | 'uploadDate'>) => Promise<void>;
+    updateHomework: (id: string, updates: Partial<Homework>) => Promise<void>;
     deleteHomework: (id: string) => Promise<void>;
     getHomeworkById: (id: string) => Homework | undefined;
-    toggleHomeworkCompletion: (id: string) => void;
+    toggleHomeworkCompletion: (id: string) => Promise<void>;
 }
 
 export const HomeworkContext = createContext<HomeworkContextType>({
     homeworks: [],
-    addHomework: () => {},
-    updateHomework: () => {},
+    addHomework: async () => {},
+    updateHomework: async () => {},
     deleteHomework: async () => {},
     getHomeworkById: () => undefined,
-    toggleHomeworkCompletion: () => {},
+    toggleHomeworkCompletion: async () => {},
 });
 
 interface HomeworkProviderProps {
     children: ReactNode;
 }
 
-const HOMEWORK_STORAGE_KEY = 'kvision-homework';
-
-const getInitialHomework = (): Homework[] => {
-    try {
-        const storedHomework = localStorage.getItem(HOMEWORK_STORAGE_KEY);
-        if (storedHomework) {
-            return JSON.parse(storedHomework);
-        }
-    } catch (error) {
-        console.error("Failed to parse homework from localStorage", error);
-    }
-    return [
-        {
-            id: 'hw-mock-1',
-            title: 'Quantum Physics Problem Set',
-            course: 'Advanced Physics',
-            dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            description: 'Complete problems 1-5 from chapter 3 of the textbook. Show all your work.',
-            uploadDate: new Date().toISOString(),
-            teacherId: 't1',
-            teacherName: 'Dr. Evelyn Reed',
-            completed: false,
-        }
-    ];
-};
-
 export const HomeworkProvider: React.FC<HomeworkProviderProps> = ({ children }) => {
-    const [homeworks, setHomeworks] = useState<Homework[]>(getInitialHomework);
+    const [homeworks, setHomeworks] = useState<Homework[]>([]);
 
     useEffect(() => {
-        try {
-            localStorage.setItem(HOMEWORK_STORAGE_KEY, JSON.stringify(homeworks));
-        } catch (error) {
-            console.error("Failed to save homework to localStorage", error);
-        }
-    }, [homeworks]);
+        const q = query(collection(db, "homework"), orderBy("uploadDate", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const homeworksData = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            } as Homework));
+            setHomeworks(homeworksData);
+        });
 
-    const addHomework = useCallback((homework: Omit<Homework, 'id' | 'uploadDate'>) => {
-        const newHomework: Homework = {
+        return () => unsubscribe();
+    }, []);
+
+    const addHomework = useCallback(async (homework: Omit<Homework, 'id' | 'uploadDate'>) => {
+        const newHomework = {
             ...homework,
-            id: `hw-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             uploadDate: new Date().toISOString(),
+            completed: false,
         };
-        setHomeworks(prev => [newHomework, ...prev]);
+        await addDoc(collection(db, "homework"), newHomework);
     }, []);
     
-    const updateHomework = useCallback((id: string, updates: Partial<Homework>) => {
-        setHomeworks(prev => prev.map(hw => hw.id === id ? { ...hw, ...updates } : hw));
+    const updateHomework = useCallback(async (id: string, updates: Partial<Homework>) => {
+        const homeworkDoc = doc(db, "homework", id);
+        await updateDoc(homeworkDoc, updates);
     }, []);
 
     const deleteHomework = useCallback(async (id: string) => {
-        await apiDelete('/api/remove/homework', id);
-        setHomeworks(prev => prev.filter(hw => hw.id !== id));
+        const homeworkDoc = doc(db, "homework", id);
+        await deleteDoc(homeworkDoc);
     }, []);
 
     const getHomeworkById = useCallback((id: string) => {
         return homeworks.find(hw => hw.id === id);
     }, [homeworks]);
 
-    const toggleHomeworkCompletion = useCallback((id: string) => {
-        setHomeworks(prev => 
-            prev.map(hw => 
-                hw.id === id ? { ...hw, completed: !hw.completed } : hw
-            )
-        );
-    }, []);
+    const toggleHomeworkCompletion = useCallback(async (id: string) => {
+        const homework = homeworks.find(hw => hw.id === id);
+        if (homework) {
+            const homeworkDoc = doc(db, "homework", id);
+            await updateDoc(homeworkDoc, { completed: !homework.completed });
+        }
+    }, [homeworks]);
 
     const contextValue = useMemo(() => ({
         homeworks,

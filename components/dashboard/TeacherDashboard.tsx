@@ -338,9 +338,9 @@ const TeacherDashboard: React.FC = () => {
         });
     };
 
-    const handleAddAnnouncement = (title: string, content: string) => {
+    const handleAddAnnouncement = async (title: string, content: string) => {
         if (user) {
-            addAnnouncement({ title, content, teacherName: user.name });
+            await addAnnouncement({ title, content, teacherName: user.name });
             setAlert({ message: 'Announcement posted successfully!', type: 'success' });
         }
     };

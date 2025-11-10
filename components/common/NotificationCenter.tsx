@@ -1,5 +1,4 @@
-
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationContext } from '../../context/NotificationContext.tsx';
 import { AuthContext } from '../../context/AuthContext.tsx';
@@ -10,15 +9,23 @@ const NotificationCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { user } = useContext(AuthContext);
     const { getNotificationsForUser, markAsRead, getUnreadCount } = useContext(NotificationContext);
 
-    const userNotifications = user ? getNotificationsForUser(user.role, user.id) : [];
+    const userNotifications = useMemo(() => 
+        user ? getNotificationsForUser(user.role, user.id) : [],
+        [user, getNotificationsForUser]
+    );
+
+    const unreadCount = useMemo(() =>
+        user ? getUnreadCount(user.role, user.id) : 0,
+        [user, getUnreadCount]
+    );
 
     useEffect(() => {
         // When the component mounts, mark all visible notifications as read for the current user
-        if (user && getUnreadCount(user.id) > 0) {
+        if (user && unreadCount > 0) {
             const timer = setTimeout(() => markAsRead(user.id), 1000); // Small delay
             return () => clearTimeout(timer);
         }
-    }, [user, markAsRead, getUnreadCount]);
+    }, [user, markAsRead, unreadCount]);
     
     return (
         <motion.div

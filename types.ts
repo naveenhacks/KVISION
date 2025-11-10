@@ -1,4 +1,3 @@
-
 export enum UserRole {
   Admin = 'admin',
   Teacher = 'teacher',
@@ -12,7 +11,8 @@ export interface StudentData {
 }
 
 export interface User {
-  id: string;
+  id: string; // Business logic ID (e.g., Apaar ID for students)
+  uid?: string; // Firebase Auth UID
   name: string;
   email: string;
   role: UserRole;
