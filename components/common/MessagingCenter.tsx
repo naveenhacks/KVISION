@@ -2,7 +2,6 @@
 
 import React, { useState, useContext, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// FIX: Import Conversation type for better type safety.
 import { MessageContext, Conversation } from '../../context/MessageContext.tsx';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { Message, User, UserRole, UploadedFile } from '../../types.ts';
@@ -286,7 +285,6 @@ const MessagingCenter: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     );
 };
 
-// FIX: Convert to React.FC to allow 'key' prop and fix typing.
 const ConversationListItem: React.FC<{ convo: Conversation, isSelected: boolean, onClick: () => void}> = ({ convo, isSelected, onClick }) => {
     const lastMessage = convo.messages[convo.messages.length-1];
     return (
@@ -305,7 +303,6 @@ const ConversationListItem: React.FC<{ convo: Conversation, isSelected: boolean,
     )
 };
 
-// FIX: Convert to React.FC to allow 'key' prop.
 const NewContactItem: React.FC<{ user: User, onClick: () => void}> = ({ user, onClick }) => (
     <button onClick={onClick} className="w-full text-left p-3 flex items-center space-x-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
         <img src={`https://api.dicebear.com/8.x/initials/svg?seed=${user.name}`} alt={user.name} className="w-12 h-12 rounded-full" />

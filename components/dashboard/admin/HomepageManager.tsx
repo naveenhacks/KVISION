@@ -1,7 +1,6 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// FIX: Import LandingPageContextType
 import { LandingPageContext, LandingPageContextType } from '../../../context/LandingPageContext.tsx';
 import { AuthContext } from '../../../context/AuthContext.tsx';
 import { TextBlock, Stat, PrincipalInfo, HomepageAnnouncement, GalleryImage, User, ContactInfo } from '../../../types.ts';
@@ -65,7 +64,6 @@ const EditableTextBlock: React.FC<{
     );
 };
 
-// FIX: Define missing components
 const GeneralInfoManager: React.FC<{
     info: PrincipalInfo;
     vision: TextBlock;
@@ -527,5 +525,4 @@ const SubmissionsReview: React.FC<{
     );
 };
 
-// FIX: Add default export
 export default AdminHomepageManager;

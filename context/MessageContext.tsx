@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo, useContext } from 'react';
-import { Message, User, UploadedFile } from '../types.ts';
+import { Message, User, UploadedFile, UserRole } from '../types.ts';
 import { AuthContext } from './AuthContext.tsx';
 import { apiDelete } from '../services/apiService.ts';
 
@@ -8,7 +8,6 @@ export const generateConversationId = (userId1: string, userId2: string) => {
     return [userId1, userId2].sort().join('--');
 };
 
-// FIX: Export Conversation interface for use in other components.
 export interface Conversation {
     id: string;
     otherUser: User;
@@ -37,6 +36,9 @@ interface MessageProviderProps {
 }
 
 const MESSAGES_STORAGE_KEY = 'kvision-messages';
+
+// A virtual user for the shared admin inbox
+const ADMIN_VIRTUAL_USER: User = { id: 'kvision_admin_inbox', name: 'KVISION Admin', email: '', role: UserRole.Admin };
 
 const getInitialMessages = (): Record<string, Message[]> => {
     try {
@@ -110,14 +112,15 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
     }, []);
 
     const getConversationsForUser = useCallback((userId: string): Conversation[] => {
+        const allUsers = [...users, ADMIN_VIRTUAL_USER]; // Include virtual admin for lookups
+
         const userConversations = Object.entries(conversations)
             .filter(([id]) => id.includes(userId))
             .map(([id, messages]) => {
                 const participantIds = id.split('--');
                 const otherUserId = participantIds.find(pId => pId !== userId);
-                const otherUser = users.find(u => u.id === otherUserId);
+                const otherUser = allUsers.find(u => u.id === otherUserId);
 
-                // FIX: Add a guard to ensure messages is an array to prevent crashes with corrupted localStorage data.
                 if (!otherUser || !Array.isArray(messages)) return null;
 
                 const unreadCount = messages.filter(m => m.receiverId === userId && m.status !== 'read').length;

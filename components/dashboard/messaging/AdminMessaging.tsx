@@ -1,12 +1,14 @@
 
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageContext, generateConversationId } from '../../../context/MessageContext';
+import { MessageContext, generateConversationId, Conversation } from '../../../context/MessageContext';
 import { AuthContext } from '../../../context/AuthContext';
 import { Message, User, UserRole } from '../../../types';
 import { Send, Search, ArrowLeft, MessageSquare, Trash2, Download, FileText, Image } from 'lucide-react';
 import Alert from '../../common/Alert';
 import ConfirmationModal from '../../common/ConfirmationModal';
+
+const ADMIN_MESSAGING_ID = 'kvision_admin_inbox';
 
 const FileMessage: React.FC<{ file: Message['content']['value'] }> = ({ file }) => {
     if (file.type.startsWith('image/')) {
@@ -42,10 +44,10 @@ const AdminMessaging: React.FC<{
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
     
-    const conversationList = getConversationsForUser('admin01');
+    const conversationList = getConversationsForUser(ADMIN_MESSAGING_ID);
     const selectedUser = users.find(u => u.id === selectedUserId);
     
-    const selectedConversationId = selectedUserId ? generateConversationId('admin01', selectedUserId) : null;
+    const selectedConversationId = selectedUserId ? generateConversationId(ADMIN_MESSAGING_ID, selectedUserId) : null;
     const selectedConversation = selectedConversationId ? conversations[selectedConversationId] || [] : [];
 
     useEffect(() => {
@@ -55,7 +57,7 @@ const AdminMessaging: React.FC<{
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
         if (messageText.trim() && selectedUserId) {
-            sendMessage('admin01', selectedUserId, { type: 'text', value: messageText.trim() });
+            sendMessage(ADMIN_MESSAGING_ID, selectedUserId, { type: 'text', value: messageText.trim() });
             setMessageText('');
         }
     };
@@ -157,13 +159,13 @@ const AdminMessaging: React.FC<{
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
-                                            className={`group flex items-end gap-2 ${msg.senderId === 'admin01' ? 'justify-end' : 'justify-start'}`}
+                                            className={`group flex items-end gap-2 ${msg.senderId === ADMIN_MESSAGING_ID ? 'justify-end' : 'justify-start'}`}
                                         >
-                                            <div className={`flex items-center gap-2 ${msg.senderId === 'admin01' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                                {msg.senderId !== 'admin01' && (
+                                            <div className={`flex items-center gap-2 ${msg.senderId === ADMIN_MESSAGING_ID ? 'flex-row-reverse' : 'flex-row'}`}>
+                                                {msg.senderId !== ADMIN_MESSAGING_ID && (
                                                     <img src={`https://api.dicebear.com/8.x/initials/svg?seed=${selectedUser.name}`} alt="avatar" className="w-6 h-6 rounded-full self-start mt-1" />
                                                 )}
-                                                <div className={`max-w-xs md:max-w-md rounded-2xl ${msg.senderId === 'admin01' ? 'bg-brand-neon-purple text-white rounded-br-none' : 'bg-white/10 text-white rounded-bl-none'}`}>
+                                                <div className={`max-w-xs md:max-w-md rounded-2xl ${msg.senderId === ADMIN_MESSAGING_ID ? 'bg-brand-neon-purple text-white rounded-br-none' : 'bg-white/10 text-white rounded-bl-none'}`}>
                                                     {msg.content.type === 'text' ? (
                                                         <p className="text-sm p-3 break-words">{msg.content.value}</p>
                                                     ) : (

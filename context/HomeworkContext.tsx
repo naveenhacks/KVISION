@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { Homework } from '../types.ts';
 import { apiDelete } from '../services/apiService.ts';
@@ -8,6 +9,7 @@ interface HomeworkContextType {
     updateHomework: (id: string, updates: Partial<Homework>) => void;
     deleteHomework: (id: string) => Promise<void>;
     getHomeworkById: (id: string) => Homework | undefined;
+    toggleHomeworkCompletion: (id: string) => void;
 }
 
 export const HomeworkContext = createContext<HomeworkContextType>({
@@ -16,6 +18,7 @@ export const HomeworkContext = createContext<HomeworkContextType>({
     updateHomework: () => {},
     deleteHomework: async () => {},
     getHomeworkById: () => undefined,
+    toggleHomeworkCompletion: () => {},
 });
 
 interface HomeworkProviderProps {
@@ -43,6 +46,7 @@ const getInitialHomework = (): Homework[] => {
             uploadDate: new Date().toISOString(),
             teacherId: 't1',
             teacherName: 'Dr. Evelyn Reed',
+            completed: false,
         }
     ];
 };
@@ -80,13 +84,22 @@ export const HomeworkProvider: React.FC<HomeworkProviderProps> = ({ children }) 
         return homeworks.find(hw => hw.id === id);
     }, [homeworks]);
 
+    const toggleHomeworkCompletion = useCallback((id: string) => {
+        setHomeworks(prev => 
+            prev.map(hw => 
+                hw.id === id ? { ...hw, completed: !hw.completed } : hw
+            )
+        );
+    }, []);
+
     const contextValue = useMemo(() => ({
         homeworks,
         addHomework,
         updateHomework,
         deleteHomework,
         getHomeworkById,
-    }), [homeworks, addHomework, updateHomework, deleteHomework, getHomeworkById]);
+        toggleHomeworkCompletion,
+    }), [homeworks, addHomework, updateHomework, deleteHomework, getHomeworkById, toggleHomeworkCompletion]);
 
     return (
         <HomeworkContext.Provider value={contextValue}>

@@ -1,10 +1,12 @@
+
 import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { HomeworkContext } from '../../context/HomeworkContext.tsx';
+import { AnnouncementContext } from '../../context/AnnouncementContext.tsx';
 import { User, Announcement, StudentPerformance, Homework, UserRole } from '../../types.ts';
-import { PlusCircle, Bell, UserCheck, UserPlus, X, Copy, Check, Trash2, Edit, FileText, FileImage, File, Globe, Eye, EyeOff, Shield, ShieldOff } from 'lucide-react';
+import { PlusCircle, Bell, UserCheck, UserPlus, X, Copy, Check, Trash2, Edit, FileText, FileImage, File, Globe, Eye, EyeOff, Shield, ShieldOff, Megaphone } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import Alert from '../common/Alert.tsx';
 import ContributionModal from './teacher/ContributionModal.tsx';
@@ -38,8 +40,8 @@ const AddStudentModal: React.FC<{
             try {
                 const newStudent = addStudent(name, apaarId, password);
                 onStudentAdded(newStudent);
-            } catch (err) {
-                setError('Failed to create student. Please try again.');
+            } catch (err: any) {
+                setError(err.message || 'Failed to create student. Please try again.');
             } finally {
                 setLoading(false);
             }
@@ -185,11 +187,51 @@ const EditStudentModal: React.FC<{
     );
 };
 
+const AnnouncementModal: React.FC<{
+    onClose: () => void;
+    onSave: (title: string, content: string) => void;
+}> = ({ onClose, onSave }) => {
+    const [title, setTitle] = useState('');
+    const [content, setContent] = useState('');
 
-const mockAnnouncements: Announcement[] = [
-    { id: 'a1', title: 'Midterm Exams Schedule', content: 'Midterm exams will be held next week. Please check the portal for the detailed schedule.', date: '2 days ago', teacherName: 'Dr. Anya Sharma' },
-    { id: 'a2', title: 'Science Fair Submissions', content: 'The deadline for science fair project submissions is this Friday.', date: '4 days ago', teacherName: 'Dr. Anya Sharma' },
-];
+    const handleSave = () => {
+        if (title.trim() && content.trim()) {
+            onSave(title, content);
+            onClose();
+        }
+    };
+    
+    return (
+         <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={onClose}
+        >
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="w-full max-w-md bg-brand-light-blue rounded-2xl border border-white/10 shadow-2xl"
+                onClick={e => e.stopPropagation()}
+            >
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold text-white">Post Announcement</h2>
+                        <button onClick={onClose} className="p-1 rounded-full text-brand-silver-gray hover:bg-white/10"><X size={20} /></button>
+                    </div>
+                    <div className="space-y-4">
+                        <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" className="w-full input-field" />
+                        <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Content..." rows={4} className="w-full input-field" />
+                    </div>
+                    <div className="pt-6 flex justify-end space-x-3">
+                        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors">Cancel</button>
+                        <button type="button" onClick={handleSave} className="px-4 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80">Post</button>
+                    </div>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+};
+
 
 const mockPerformance: StudentPerformance[] = [
     { name: 'Alex J.', attendance: 95, grade: 88 },
@@ -209,11 +251,12 @@ const FileTypeIcon = ({ fileType }: { fileType?: string }) => {
 const TeacherDashboard: React.FC = () => {
     const { user, users, updateUsers, deleteUser } = useContext(AuthContext);
     const { homeworks, deleteHomework } = useContext(HomeworkContext);
+    const { announcements, addAnnouncement } = useContext(AnnouncementContext);
     const navigate = useNavigate();
-    const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements);
     const [isAddStudentModalOpen, setAddStudentModalOpen] = useState(false);
     const [isContribModalOpen, setContribModalOpen] = useState(false);
     const [isAttendanceModalOpen, setAttendanceModalOpen] = useState(false);
+    const [isAnnouncementModalOpen, setAnnouncementModalOpen] = useState(false);
     const [newStudentCredentials, setNewStudentCredentials] = useState<User | null>(null);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [homeworkToDelete, setHomeworkToDelete] = useState<Homework | null>(null);
@@ -222,6 +265,8 @@ const TeacherDashboard: React.FC = () => {
 
     const teacherHomeworks = homeworks.filter(hw => hw.teacherId === user?.id);
     const students = users.filter(u => u.role === UserRole.Student);
+    const teacherAnnouncements = announcements.filter(ann => ann.teacherName === user?.name);
+
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -296,6 +341,13 @@ const TeacherDashboard: React.FC = () => {
         });
     };
 
+    const handleAddAnnouncement = (title: string, content: string) => {
+        if (user) {
+            addAnnouncement({ title, content, teacherName: user.name });
+            setAlert({ message: 'Announcement posted successfully!', type: 'success' });
+        }
+    };
+
     return (
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
             <AnimatePresence>
@@ -320,6 +372,12 @@ const TeacherDashboard: React.FC = () => {
                         onClose={() => setAttendanceModalOpen(false)}
                         students={students}
                         onSubmit={handleAttendanceSubmit}
+                    />
+                )}
+                {isAnnouncementModalOpen && (
+                    <AnnouncementModal
+                        onClose={() => setAnnouncementModalOpen(false)}
+                        onSave={handleAddAnnouncement}
                     />
                 )}
                 {editingStudent && (
@@ -352,12 +410,15 @@ const TeacherDashboard: React.FC = () => {
                 Teacher Dashboard - Welcome, {user?.name}!
             </motion.h1>
 
-            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                  <button onClick={() => setAddStudentModalOpen(true)} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
                     <UserPlus /> <span>Add Student</span>
                 </button>
                 <button onClick={() => navigate('/dashboard/homework/new')} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
                     <PlusCircle /> <span>Upload Homework</span>
+                </button>
+                <button onClick={() => setAnnouncementModalOpen(true)} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
+                    <Megaphone /> <span>Post Announcement</span>
                 </button>
                 <button onClick={() => setContribModalOpen(true)} className="h-full flex items-center justify-center space-x-2 bg-brand-light-blue text-white p-6 rounded-xl hover:bg-brand-neon-purple transition-all duration-300 border border-brand-neon-purple/50 transform hover:-translate-y-1">
                     <Globe /> <span>Contribute</span>
@@ -444,17 +505,18 @@ const TeacherDashboard: React.FC = () => {
 
             <motion.div variants={containerVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <motion.div variants={itemVariants} className="bg-white/5 p-6 rounded-xl border border-white/10">
-                    <h2 className="text-2xl font-semibold mb-4 text-brand-light-purple">Recent Announcements</h2>
+                    <h2 className="text-2xl font-semibold mb-4 text-brand-light-purple">My Announcements</h2>
                     <ul className="space-y-4">
-                        {announcements.map(ann => (
+                        {teacherAnnouncements.map(ann => (
                             <li key={ann.id} className="p-4 bg-white/5 rounded-lg">
                                 <div className="flex justify-between items-start">
                                     <h3 className="font-bold text-white">{ann.title}</h3>
-                                    <span className="text-xs text-brand-silver-gray">{ann.date}</span>
+                                    <span className="text-xs text-brand-silver-gray">{new Date(ann.date).toLocaleDateString()}</span>
                                 </div>
                                 <p className="text-sm text-gray-300 mt-1">{ann.content}</p>
                             </li>
                         ))}
+                         {teacherAnnouncements.length === 0 && <p className="text-center text-brand-silver-gray py-4">You have not posted any announcements.</p>}
                     </ul>
                 </motion.div>
                 <motion.div variants={itemVariants} className="bg-white/5 p-6 rounded-xl border border-white/10">

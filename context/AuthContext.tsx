@@ -8,9 +8,30 @@ const ALL_USERS: User[] = [
     { id: 'admin1', name: 'Naveen Rajpoot', email: 'naveenrajpoot157@gmail.com', role: UserRole.Admin, password: 'Naveen@9956' },
     { id: 'admin2', name: 'KV Unnao Principal', email: 'kvunnao85@gmail.com', role: UserRole.Admin, password: 'KVU@2025' },
     { id: 't1', name: 'KV Teacher', email: 'teacher@kvision.com', role: UserRole.Teacher, password: 'Teacher@123' },
-    { id: 's1', name: 'KV Student', email: 'student@kvision.com', role: UserRole.Student, password: 'Student@123' },
-    // Keep other mock users for data consistency in other parts of the app like messaging
-    { id: 's2', name: 'Maria Garcia', email: 'maria@edu.com', role: UserRole.Student, password: 'password456' },
+    { 
+      id: 's1', 
+      name: 'KV Student', 
+      email: 'student@kvision.com', 
+      role: UserRole.Student, 
+      password: 'Student@123',
+      studentData: {
+        courses: ['Physics', 'Chemistry', 'Maths', 'CS'],
+        attendance: 92,
+        overallGrade: 88,
+      }
+    },
+    { 
+      id: 's2', 
+      name: 'Maria Garcia', 
+      email: 'maria@edu.com', 
+      role: UserRole.Student, 
+      password: 'password456',
+      studentData: {
+        courses: ['Biology', 'English', 'History', 'Art'],
+        attendance: 95,
+        overallGrade: 91,
+      }
+    },
     { id: 't-extra', name: 'Dr. Evelyn Reed', email: 'evelyn@edu.com', role: UserRole.Teacher, password: 'teacherpass' },
 ];
 
@@ -141,6 +162,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       role: UserRole.Student,
       password: password,
       blocked: false,
+      studentData: { // Add default academic data for new students
+        courses: ['General Science', 'Mathematics', 'English'],
+        attendance: 100,
+        overallGrade: 0,
+      }
     };
     setUsers(prevUsers => [...prevUsers, newStudent]);
     return newStudent;

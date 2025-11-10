@@ -5,6 +5,12 @@ export enum UserRole {
   Student = 'student',
 }
 
+export interface StudentData {
+  courses: string[];
+  attendance: number; // percentage
+  overallGrade: number; // percentage
+}
+
 export interface User {
   id: string;
   name: string;
@@ -12,6 +18,7 @@ export interface User {
   role: UserRole;
   password?: string;
   blocked?: boolean;
+  studentData?: StudentData;
 }
 
 export interface UploadedFile {

@@ -7,7 +7,8 @@ import { AuthProvider, AuthContext } from './context/AuthContext.tsx';
 import { HomeworkProvider } from './context/HomeworkContext.tsx';
 import { MessageProvider } from './context/MessageContext.tsx';
 import { NotificationProvider } from './context/NotificationContext.tsx';
-// The new LandingPage does not use this context provider.
+import { AnnouncementProvider } from './context/AnnouncementContext.tsx';
+// The public LandingPage does not use this, but it's required for the admin management panel.
 import { LandingPageProvider } from './context/LandingPageContext.tsx';
 // FIX: The component is now a default export.
 import LandingPage from './pages/LandingPage.tsx';
@@ -24,9 +25,11 @@ const App: React.FC = () => {
         <HomeworkProvider>
           <MessageProvider>
             <NotificationProvider>
-              <LandingPageProvider>
-                <AppContent />
-              </LandingPageProvider>
+              <AnnouncementProvider>
+                <LandingPageProvider>
+                  <AppContent />
+                </LandingPageProvider>
+              </AnnouncementProvider>
             </NotificationProvider>
           </MessageProvider>
         </HomeworkProvider>
@@ -39,48 +42,46 @@ const AppContent: React.FC = () => {
   const { theme } = useContext(ThemeContext);
 
   return (
-    <div className={`${theme} font-sans`}>
-      <div className="bg-white dark:bg-brand-deep-blue text-black dark:text-white min-h-screen transition-colors duration-500">
-        <HashRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login/:role" element={<LoginPage />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <DashboardPage />
-                </ProtectedRoute>
-              }
-            />
-             <Route
-              path="/dashboard/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/homework/new"
-              element={
-                <ProtectedRoute>
-                  <HomeworkPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/homework/edit/:id"
-              element={
-                <ProtectedRoute>
-                  <HomeworkPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </HashRouter>
-      </div>
+    <div className="font-sans bg-white dark:bg-brand-deep-blue text-black dark:text-white min-h-screen transition-colors duration-500">
+      <HashRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login/:role" element={<LoginPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+           <Route
+            path="/dashboard/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/homework/new"
+            element={
+              <ProtectedRoute>
+                <HomeworkPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/homework/edit/:id"
+            element={
+              <ProtectedRoute>
+                <HomeworkPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </HashRouter>
     </div>
   );
 };

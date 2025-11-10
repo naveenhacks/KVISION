@@ -1,7 +1,6 @@
 
 
 import React, { useState, useContext } from 'react';
-// FIX: Import AnimatePresence from framer-motion
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Megaphone, Image as ImageIcon, UploadCloud, File as FileIcon } from 'lucide-react';
 import { LandingPageContext } from '../../../context/LandingPageContext';

@@ -242,7 +242,7 @@ const StudentModal: React.FC<{
     
     const handleCopy = () => {
         if (!credentials) return;
-        const textToCopy = `Student ID: ${credentials.id}\nPassword: ${credentials.password}`;
+        const textToCopy = `Apaar ID: ${credentials.id}\nPassword: ${credentials.password}`;
         navigator.clipboard.writeText(textToCopy);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
@@ -267,10 +267,13 @@ const StudentModal: React.FC<{
                          <div className="space-y-4 text-center">
                             <p className="text-brand-silver-gray">Share these credentials with the new student.</p>
                             <div className="bg-white/10 p-4 rounded-lg space-y-2 text-left text-sm">
-                                <p><span className="font-semibold text-brand-silver-gray">Student ID:</span> <code className="bg-black/20 px-2 py-1 rounded text-brand-light-purple">{credentials.id}</code></p>
+                                <p><span className="font-semibold text-brand-silver-gray">Apaar ID:</span> <code className="bg-black/20 px-2 py-1 rounded text-brand-light-purple">{credentials.id}</code></p>
                                 <p><span className="font-semibold text-brand-silver-gray">Password:</span> <code className="bg-black/20 px-2 py-1 rounded text-brand-light-purple">{credentials.password}</code></p>
                             </div>
-                            <button onClick={handleCopy} className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-brand-neon-purple"><Copy size={20} /><span>Copy Credentials</span></button>
+                            <button onClick={handleCopy} className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80 transition-colors">
+                                {copied ? <Check size={20} /> : <Copy size={20} />}
+                                <span>{copied ? 'Copied!' : 'Copy Credentials'}</span>
+                            </button>
                             <button onClick={handleClose} className="w-full px-4 py-2 rounded-lg text-white bg-white/10">Close</button>
                         </div>
                     ) : (
@@ -453,9 +456,14 @@ const AdminUserManagement: React.FC<{ onMessageUser: (userId: string) => void }>
     const handleSaveUser = (userData: Partial<User>): User | void => {
         if (modalMode === 'add') {
             if (userData.role === UserRole.Teacher && userData.name && userData.email && userData.password) {
-                const newTeacher = addTeacher(userData.name, userData.email, userData.password);
-                setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
-                return newTeacher;
+                try {
+                    const newTeacher = addTeacher(userData.name, userData.email, userData.password);
+                    setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
+                    return newTeacher;
+                } catch (err: any) {
+                     setAlert({ message: err.message || 'Failed to add teacher.', type: 'error' });
+                     return;
+                }
             }
         } else { // Edit mode
             updateUsers(prevUsers => prevUsers.map(u => (u.id === userData.id ? { ...u, ...userData } as User : u)));
@@ -616,9 +624,14 @@ const AdminTeacherManagement: React.FC = () => {
     const handleSave = (userData: Partial<User>): User | void => {
         if (modalMode === 'add') {
              if (userData.name && userData.email && userData.password) {
-                const newTeacher = addTeacher(userData.name, userData.email, userData.password);
-                setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
-                return newTeacher;
+                 try {
+                    const newTeacher = addTeacher(userData.name, userData.email, userData.password);
+                    setAlert({ message: `Teacher "${newTeacher.name}" added successfully.`, type: 'success' });
+                    return newTeacher;
+                 } catch (err: any) {
+                     setAlert({ message: err.message || 'Failed to add teacher.', type: 'error' });
+                     return;
+                 }
             }
         } else {
             updateUsers(prev => prev.map(u => (u.id === userData.id ? { ...u, ...userData } as User : u)));
@@ -674,9 +687,14 @@ const AdminStudentManagement: React.FC<{ onMessageUser: (userId: string) => void
     const handleSave = (userData: Partial<User>): User | void => {
         if (modalMode === 'add') {
              if (userData.name && userData.id && userData.password) {
-                const newStudent = addStudent(userData.name, userData.id, userData.password);
-                setAlert({ message: `Student "${newStudent.name}" added successfully.`, type: 'success' });
-                return newStudent;
+                 try {
+                    const newStudent = addStudent(userData.name, userData.id, userData.password);
+                    setAlert({ message: `Student "${newStudent.name}" added successfully.`, type: 'success' });
+                    return newStudent;
+                 } catch (err: any) {
+                    setAlert({ message: err.message || 'Failed to add student.', type: 'error' });
+                    return;
+                 }
             }
         } else {
             updateUsers(prev => prev.map(u => (u.id === userData.id ? { ...u, name: userData.name, password: userData.password } as User : u)));

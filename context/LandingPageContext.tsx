@@ -4,7 +4,6 @@ import { HomepageContent, PrincipalInfo, TextBlock, Stat, HomepageAnnouncement, 
 import { AuthContext } from './AuthContext.tsx';
 import { apiDelete } from '../services/apiService.ts';
 
-// FIX: Export LandingPageContextType interface
 export interface LandingPageContextType {
     content: HomepageContent;
     updatePrincipalInfo: (info: Partial<PrincipalInfo>) => void;
