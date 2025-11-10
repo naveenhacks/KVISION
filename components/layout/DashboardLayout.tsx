@@ -1,5 +1,6 @@
-import React, { useContext, useState, useMemo } from 'react';
+import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { ThemeContext } from '../../context/ThemeContext.tsx';
 import { MessageContext } from '../../context/MessageContext.tsx';
@@ -35,6 +36,15 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const navigate = useNavigate();
   const [isMessagingCenterOpen, setIsMessagingCenterOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  useEffect(() => {
+    if (isBackendConnected) {
+      setShowSuccessMessage(true);
+      const timer = setTimeout(() => setShowSuccessMessage(false), 4000); // Hide after 4 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [isBackendConnected]);
 
   const handleLogout = () => {
     logout();
@@ -54,7 +64,19 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-light-blue dark:bg-brand-deep-blue">
-      {!isBackendConnected && (
+      <AnimatePresence>
+        {showSuccessMessage && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-green-500 text-white text-center p-2 font-semibold text-sm overflow-hidden"
+          >
+            Firebase Connected Successfully ✅
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {!isBackendConnected && !showSuccessMessage && (
         <div className="bg-yellow-500 text-black text-center p-2 font-semibold text-sm">
           ⚠️ Backend not connected yet
         </div>

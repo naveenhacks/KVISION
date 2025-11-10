@@ -1,5 +1,4 @@
-
-import React, { useContext } from 'react';
+import React, { useContext, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Homework } from '../../types.ts';
 import { AuthContext } from '../../context/AuthContext.tsx';
@@ -9,10 +8,6 @@ import { Book, Clock, Download, Check, Megaphone } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { timeAgo } from '../../utils/timeAgo.ts';
 
-const attendanceData = [
-    { name: 'Present', value: 85 },
-    { name: 'Absent', value: 15 },
-];
 const COLORS = ['#8a2be2', '#4a4a70'];
 
 
@@ -21,6 +16,12 @@ const StudentDashboard: React.FC = () => {
     const { homeworks, toggleHomeworkCompletion } = useContext(HomeworkContext);
     const { announcements } = useContext(AnnouncementContext);
     
+    const attendance = user?.studentData?.attendance ?? 0;
+    const attendanceData = useMemo(() => [
+        { name: 'Present', value: attendance },
+        { name: 'Absent', value: 100 - attendance },
+    ], [attendance]);
+
     const isCompleted = (hw: Homework) => user && hw.completedBy?.includes(user.id);
 
     const sortedHomeworks = [...homeworks].sort((a, b) => (isCompleted(a) ? 1 : -1) - (isCompleted(b) ? 1 : -1) || new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());

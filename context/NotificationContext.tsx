@@ -7,7 +7,6 @@ interface NotificationContextType {
     notifications: Notification[];
     addNotification: (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => Promise<void>;
     deleteNotification: (id: string) => Promise<void>;
-    // FIX: Update markAsRead to accept userRole to correctly identify notifications to mark as read.
     markAsRead: (userId: string, userRole: UserRole) => Promise<void>;
     getUnreadCount: (userRole: UserRole, userId: string) => number;
     getNotificationsForUser: (userRole: UserRole, userId: string) => Notification[];
@@ -58,16 +57,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return userNotifs.filter(n => !n.readBy.includes(userId)).length;
     }, [notifications, getNotificationsForUser]);
 
-    // FIX: Update markAsRead to accept and use userRole, fixing a logic bug where only student notifications would be marked as read.
     const markAsRead = useCallback(async (userId: string, userRole: UserRole) => {
         const userNotifs = getNotificationsForUser(userRole, userId);
-        userNotifs.forEach(async (n) => {
+        const promises: Promise<void>[] = [];
+        userNotifs.forEach((n) => {
             if (!n.readBy.includes(userId)) {
-                await updateDoc(doc(db, 'notifications', n.id), {
+                promises.push(updateDoc(doc(db, 'notifications', n.id), {
                     readBy: arrayUnion(userId)
-                });
+                }));
             }
         });
+        await Promise.all(promises);
     }, [getNotificationsForUser]);
 
     const contextValue = useMemo(() => ({

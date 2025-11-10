@@ -4,12 +4,12 @@ import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
+  apiKey: "AIzaSyB_nDxRMp_wNVoh0Y33M2kcM-0NN1rHb7o",
+  authDomain: "kvision-100e7.firebaseapp.com",
+  projectId: "kvision-100e7",
+  storageBucket: "kvision-100e7.appspot.com",
+  messagingSenderId: "548673823145",
+  appId: "1:548673823145:web:d440e2c60b348b258e24b8"
 };
 
 // Initialize Firebase

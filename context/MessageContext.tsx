@@ -68,7 +68,7 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
                         id: doc.id,
                         otherUser,
                         messages,
-                        unreadCount: messages.filter((m: Message) => m.receiverId === user.id && m.status !== 'read').length
+                        unreadCount: messages.filter((m: Message) => m.receiverId === messageUserId && m.status !== 'read').length
                     });
                 }
             });
@@ -78,6 +78,7 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
                 const lastMsgB = b.messages[b.messages.length - 1];
                 if (!lastMsgA) return 1;
                 if (!lastMsgB) return -1;
+                // FIX: Corrected typo from a.timestamp to lastMsgA.timestamp for correct sorting.
                 return new Date(lastMsgB.timestamp).getTime() - new Date(lastMsgA.timestamp).getTime();
             });
 
@@ -128,16 +129,19 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
     }, [conversations]);
 
     const markConversationAsRead = useCallback(async (conversationId: string, readerId: string) => {
+        if (!user) return;
+        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : readerId;
+        
         const convo = conversations.find(c => c.id === conversationId);
         if (convo) {
             const updatedMessages = convo.messages.map(msg => 
-                msg.receiverId === readerId && msg.status !== 'read' 
+                msg.receiverId === messageUserId && msg.status !== 'read' 
                 ? { ...msg, status: 'read' as const } 
                 : msg
             );
             await updateDoc(doc(db, "conversations", conversationId), { messages: updatedMessages });
         }
-    }, [conversations]);
+    }, [conversations, user]);
 
 
     const contextValue = useMemo(() => ({

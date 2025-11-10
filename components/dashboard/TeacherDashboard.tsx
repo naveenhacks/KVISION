@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext.tsx';
@@ -121,15 +121,6 @@ const AnnouncementModal: React.FC<{
     );
 };
 
-
-const mockPerformance: StudentPerformance[] = [
-    { name: 'Alex J.', attendance: 95, grade: 88 },
-    { name: 'Maria G.', attendance: 92, grade: 91 },
-    { name: 'Rohan V.', attendance: 98, grade: 85 },
-    { name: 'Priya S.', attendance: 88, grade: 94 },
-    { name: 'Sam K.', attendance: 96, grade: 78 },
-];
-
 const FileTypeIcon = ({ fileType }: { fileType?: string }) => {
     if (!fileType) return <File size={24} className="text-brand-silver-gray" />;
     if (fileType.startsWith('image/')) return <FileImage size={24} className="text-blue-400" />;
@@ -154,6 +145,21 @@ const TeacherDashboard: React.FC = () => {
     const students = users.filter(u => u.role === UserRole.Student);
     const teacherAnnouncements = announcements.filter(ann => ann.teacherName === user?.name);
 
+    const studentPerformanceData = useMemo((): StudentPerformance[] => {
+        return students
+            .map(student => {
+                const nameParts = student.name.split(' ');
+                const displayName = nameParts.length > 1 
+                    ? `${nameParts[0]} ${nameParts[nameParts.length - 1].charAt(0)}.` 
+                    : nameParts[0];
+                return {
+                    name: displayName,
+                    attendance: student.studentData?.attendance ?? 0,
+                    grade: student.studentData?.overallGrade ?? 0,
+                };
+            })
+            .slice(0, 5); // Keep the chart clean with a max of 5 students
+    }, [students]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -341,7 +347,7 @@ const TeacherDashboard: React.FC = () => {
                     <h2 className="text-2xl font-semibold mb-4 text-brand-light-purple">Student Performance</h2>
                      <div className="h-96">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={mockPerformance} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <BarChart data={studentPerformanceData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                                 <XAxis dataKey="name" stroke="#c0c0c0" fontSize={12} />
                                 <YAxis yAxisId="left" orientation="left" stroke="#8a2be2" fontSize={12} />
