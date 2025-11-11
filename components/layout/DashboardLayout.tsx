@@ -1,3 +1,4 @@
+
 import React, { useContext, useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +31,7 @@ const ThemeToggle = () => {
   );
 };
 
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const DashboardLayout: React.FC<{ children: React.ReactNode, fullWidth?: boolean }> = ({ children, fullWidth = false }) => {
   const { user, logout, connectionStatus } = useContext(AuthContext);
   const { conversations } = useContext(MessageContext);
   const { getUnreadCount } = useContext(NotificationContext);
@@ -122,7 +123,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </div>
         </div>
       </header>
-      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8 relative">
+      <main className={`flex-grow relative ${fullWidth ? '' : 'container mx-auto p-4 sm:p-6 lg:p-8'}`}>
         {children}
       </main>
       {showNaviAi && <NaviAiWidget />}

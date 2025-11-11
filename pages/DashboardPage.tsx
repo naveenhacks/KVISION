@@ -24,7 +24,7 @@ const DashboardPage: React.FC = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout fullWidth={user?.role === UserRole.Admin}>
       {user ? renderDashboard() : <div>Loading...</div>}
     </DashboardLayout>
   );

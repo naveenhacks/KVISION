@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 // FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -75,10 +76,9 @@ const AdminSidebar: React.FC<{
         }
     }
 
-    // FIX: Add Variants type to fix type error for 'type' property.
     const sidebarVariants: Variants = {
-        open: { x: 0, transition: { type: 'spring', stiffness: 300, damping: 30 } },
-        closed: { x: '-100%', transition: { type: 'spring', stiffness: 300, damping: 30 } },
+        open: { x: 0 },
+        closed: { x: '-100%' },
     };
 
     return (
@@ -87,7 +87,9 @@ const AdminSidebar: React.FC<{
                 variants={sidebarVariants}
                 initial="closed"
                 animate={isOpen ? "open" : "closed"}
-                className="fixed top-0 left-0 h-screen w-64 bg-gradient-to-b from-brand-light-blue to-brand-deep-blue rounded-r-2xl shadow-2xl z-40 lg:translate-x-0"
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-brand-light-blue to-brand-deep-blue rounded-r-2xl shadow-2xl z-40 
+                           lg:relative lg:translate-x-0 lg:flex-shrink-0"
             >
                 <div className="p-4 flex flex-col h-full">
                     {/* Profile Section */}
@@ -99,7 +101,7 @@ const AdminSidebar: React.FC<{
                         </div>
                     </div>
                     {/* Navigation */}
-                    <nav className="flex-grow">
+                    <nav className="flex-grow overflow-y-auto">
                         <ul>
                             {navItems.map(item => (
                                 <li key={item.id}>
@@ -120,7 +122,17 @@ const AdminSidebar: React.FC<{
                     </nav>
                 </div>
             </motion.div>
-            {isOpen && <div onClick={() => setIsOpen(false)} className="fixed inset-0 bg-black/50 z-30 lg:hidden"></div>}
+             <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsOpen(false)}
+                        className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
         </>
     );
 };
@@ -801,19 +813,6 @@ const AdminDashboard: React.FC = () => {
     const [activeView, setActiveView] = useState('overview');
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [selectedMessageUserId, setSelectedMessageUserId] = useState<string | null>(null);
-
-    useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth >= 1024) {
-                setSidebarOpen(true);
-            } else {
-                setSidebarOpen(false);
-            }
-        };
-        handleResize(); // Set initial state
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
     
     const handleMessageUserClick = (userId: string) => {
         setSelectedMessageUserId(userId);
@@ -836,16 +835,18 @@ const AdminDashboard: React.FC = () => {
     }
     
     return (
-        <div className="relative">
+        <div className="flex h-full">
              <AdminSidebar 
                 activeView={activeView} 
                 setActiveView={setActiveView}
                 isOpen={isSidebarOpen}
                 setIsOpen={setSidebarOpen}
              />
-             <div className="lg:pl-64 transition-all duration-300">
-                <button onClick={() => setSidebarOpen(true)} className="lg:hidden fixed top-20 left-4 z-20 p-2 rounded-md bg-brand-light-blue/50 backdrop-blur-sm">
-                    <Menu className="text-white" />
+             <main className="flex-1 overflow-y-auto">
+                <button 
+                  onClick={() => setSidebarOpen(true)} 
+                  className="lg:hidden fixed top-[4.5rem] left-4 z-30 p-2 rounded-md bg-brand-light-blue/50 backdrop-blur-sm text-white">
+                    <Menu />
                 </button>
                  <div className="p-4 sm:p-6 lg:p-8">
                      <AnimatePresence mode="wait">
@@ -860,7 +861,7 @@ const AdminDashboard: React.FC = () => {
                          </motion.div>
                      </AnimatePresence>
                  </div>
-             </div>
+             </main>
         </div>
     );
 };
