@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useContext, useMemo } from 'react';
 // FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
@@ -88,7 +89,7 @@ const AdminSidebar: React.FC<{
                 initial="closed"
                 animate={isOpen ? "open" : "closed"}
                 transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-brand-light-blue to-brand-deep-blue rounded-r-2xl shadow-2xl z-40 
+                className="fixed inset-y-0 left-0 w-64 bg-brand-light-blue rounded-r-2xl shadow-2xl z-40 
                            lg:relative lg:translate-x-0 lg:flex-shrink-0"
             >
                 <div className="p-4 flex flex-col h-full">
@@ -842,7 +843,7 @@ const AdminDashboard: React.FC = () => {
                 isOpen={isSidebarOpen}
                 setIsOpen={setSidebarOpen}
              />
-             <main className="flex-1 overflow-y-auto">
+             <main className="flex-1 overflow-y-auto overflow-x-hidden">
                 <button 
                   onClick={() => setSidebarOpen(true)} 
                   className="lg:hidden fixed top-[4.5rem] left-4 z-30 p-2 rounded-md bg-brand-light-blue/50 backdrop-blur-sm text-white">
