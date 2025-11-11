@@ -1,20 +1,26 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# KVISION - Kendriya Vidyalaya Unnao Platform
 
-# Run and deploy your AI Studio app
+This is the refactored project structure for the KVISION platform.
 
-This contains everything you need to run your app locally.
+## Getting Started
 
-View your app in AI Studio: https://ai.studio/apps/drive/1LnDCJPysurKUbe7wa37At9yC6wA-21GN
+1.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
 
-## Run Locally
+2.  **Environment Variables**
+    Create a `.env.local` file in the root directory and add your Firebase project configuration:
+    ```
+    VITE_FIREBASE_API_KEY=...
+    VITE_FIREBASE_AUTH_DOMAIN=...
+    VITE_FIREBASE_PROJECT_ID=...
+    VITE_FIREBASE_STORAGE_BUCKET=...
+    VITE_FIREBASE_MESSAGING_SENDER_ID=...
+    VITE_FIREBASE_APP_ID=...
+    ```
 
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+3.  **Run the Development Server**
+    ```bash
+    npm run dev
+    ```

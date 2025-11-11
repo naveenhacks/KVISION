@@ -10,6 +10,7 @@ import { UserRole } from '../../types.ts';
 import NaviAiWidget from '../common/NaviAiWidget.tsx';
 import MessagingCenter from '../common/MessagingCenter.tsx';
 import NotificationCenter from '../common/NotificationCenter.tsx';
+import Alert from '../common/Alert.tsx';
 
 const KVisionLogo = () => (
     <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-brand-light-purple via-white to-brand-silver-gray">
@@ -30,21 +31,21 @@ const ThemeToggle = () => {
 };
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, logout, isBackendConnected } = useContext(AuthContext);
+  const { user, logout, connectionStatus } = useContext(AuthContext);
   const { conversations } = useContext(MessageContext);
   const { getUnreadCount } = useContext(NotificationContext);
   const navigate = useNavigate();
   const [isMessagingCenterOpen, setIsMessagingCenterOpen] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [connectionAlert, setConnectionAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    if (isBackendConnected) {
-      setShowSuccessMessage(true);
-      const timer = setTimeout(() => setShowSuccessMessage(false), 4000); // Hide after 4 seconds
-      return () => clearTimeout(timer);
+    if (connectionStatus === 'success') {
+      setConnectionAlert({ message: '✅ Firebase Connected Successfully', type: 'success' });
+    } else if (connectionStatus === 'error') {
+      setConnectionAlert({ message: '❌ Firebase Connection Failed', type: 'error' });
     }
-  }, [isBackendConnected]);
+  }, [connectionStatus]);
 
   const handleLogout = () => {
     logout();
@@ -65,22 +66,8 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return (
     <div className="flex flex-col min-h-screen bg-brand-light-blue dark:bg-brand-deep-blue">
       <AnimatePresence>
-        {showSuccessMessage && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-green-500 text-white text-center p-2 font-semibold text-sm overflow-hidden"
-          >
-            Firebase Connected Successfully ✅
-          </motion.div>
-        )}
+        {connectionAlert && <Alert message={connectionAlert.message} type={connectionAlert.type} onClose={() => setConnectionAlert(null)} />}
       </AnimatePresence>
-      {!isBackendConnected && !showSuccessMessage && (
-        <div className="bg-yellow-500 text-black text-center p-2 font-semibold text-sm">
-          ⚠️ Backend not connected yet
-        </div>
-      )}
       <header className="sticky top-0 z-50 bg-brand-deep-blue/50 dark:bg-brand-deep-blue/80 backdrop-blur-lg border-b border-white/10 shadow-lg">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

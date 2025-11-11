@@ -78,7 +78,6 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
                 const lastMsgB = b.messages[b.messages.length - 1];
                 if (!lastMsgA) return 1;
                 if (!lastMsgB) return -1;
-                // FIX: Corrected typo from a.timestamp to lastMsgA.timestamp for correct sorting.
                 return new Date(lastMsgB.timestamp).getTime() - new Date(lastMsgA.timestamp).getTime();
             });
 

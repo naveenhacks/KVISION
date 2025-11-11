@@ -17,18 +17,27 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 // --- HELPER & REUSABLE COMPONENTS ---
+const colorMap: { [key: string]: { bg: string; text: string } } = {
+    purple: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+    indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400' },
+    blue: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+    green: { bg: 'bg-green-500/20', text: 'text-green-400' },
+};
 
 // FIX: Changed icon prop type from React.ReactNode to React.ReactElement to resolve cloneElement error.
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactElement; color: string }> = ({ title, value, icon, color }) => (
-    <div className="bg-brand-light-blue p-5 rounded-xl border border-white/10 flex items-center space-x-4 transform transition-transform hover:-translate-y-1 h-full">
-        {/* FIX: Cast icon to React.ReactElement<any> to satisfy TypeScript's type checking for cloneElement. This is safe because lucide-react icons accept a className prop. */}
-        <div className={`p-3 bg-${color}-500/20 rounded-full`}>{React.cloneElement(icon as React.ReactElement<any>, { className: `text-${color}-400` })}</div>
-        <div>
-            <p className="text-brand-silver-gray text-sm">{title}</p>
-            <p className="text-2xl font-bold text-white">{value}</p>
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactElement; color: string }> = ({ title, value, icon, color }) => {
+    const { bg, text } = colorMap[color] || { bg: 'bg-gray-500/20', text: 'text-gray-400' };
+    return (
+        <div className="bg-brand-light-blue p-5 rounded-xl border border-white/10 flex items-center space-x-4 transform transition-transform hover:-translate-y-1 h-full">
+            {/* FIX: Cast icon to React.ReactElement<any> to satisfy TypeScript's type checking for cloneElement. This is safe because lucide-react icons accept a className prop. */}
+            <div className={`p-3 ${bg} rounded-full`}>{React.cloneElement(icon as React.ReactElement<any>, { className: text })}</div>
+            <div>
+                <p className="text-brand-silver-gray text-sm">{title}</p>
+                <p className="text-2xl font-bold text-white">{value}</p>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const navItems = [
     { id: 'overview', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },

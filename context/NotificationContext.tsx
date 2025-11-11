@@ -28,7 +28,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 return {
                     ...docData,
                     id: doc.id,
-                    date: docData.date.toDate().toISOString(),
+                    date: docData.date?.toDate ? docData.date.toDate().toISOString() : new Date().toISOString(),
                 } as Notification
             });
             setNotifications(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));

@@ -18,7 +18,7 @@ interface AuthContextType {
   user: User | null;
   users: User[];
   loading: boolean;
-  isBackendConnected: boolean;
+  connectionStatus: 'pending' | 'success' | 'error';
   login: (role: UserRole, email: string, pass: string) => Promise<{ success: boolean, message?: string }>;
   logout: () => void;
   addStudent: (name: string, apaarId: string, password: string) => Promise<User>;
@@ -39,17 +39,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isBackendConnected, setIsBackendConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'pending' | 'success' | 'error'>('pending');
 
   useEffect(() => {
     // Check backend connection
     const checkConnection = async () => {
         try {
             await getDoc(doc(db, "health_check", "status"));
-            setIsBackendConnected(true);
+            setConnectionStatus('success');
         } catch (error) {
-            console.error("Firebase connection check failed:", error);
-            setIsBackendConnected(false);
+            console.error("Firebase Connection Failed:", error);
+            setConnectionStatus('error');
         }
     };
     checkConnection();
@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     users,
     loading,
-    isBackendConnected,
+    connectionStatus,
     login,
     logout,
     addStudent,
@@ -203,7 +203,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUsers,
     updateUser,
     updatePassword,
-  }), [user, users, loading, isBackendConnected, login, logout, addStudent, addTeacher, deleteUser, updateUsers, updateUser, updatePassword]);
+  }), [user, users, loading, connectionStatus, login, logout, addStudent, addTeacher, deleteUser, updateUsers, updateUser, updatePassword]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -1,53 +1,62 @@
-
 import React, { useState, useContext } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AuthContext } from '../context/AuthContext.tsx';
-import { UserRole } from '../types.ts';
+import { motion } from 'framer-motion';
+import { AuthContext } from '../context/AuthContext.jsx';
+import { UserRole } from '../types.js';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 
-const LoadingSpinner: React.FC = () => (
+const LoadingSpinner = () => (
     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
     </svg>
 );
 
-const LoginPage: React.FC = () => {
-  const { role } = useParams<{ role: string }>();
+const ErrorMessage = ({ message }) => (
+    <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-red-500/20 border border-red-500/50 text-red-300 p-3 rounded-lg flex items-center space-x-3 text-sm"
+    >
+        <AlertTriangle size={20} />
+        <span>{message}</span>
+    </motion.div>
+);
+
+const Login = () => {
+  const { role } = useParams();
   const navigate = useNavigate();
-  const { login, connectionStatus } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const userRole = role as UserRole;
+  const userRole = role;
   if (!Object.values(UserRole).includes(userRole)) {
     navigate('/');
     return null;
   }
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    if (connectionStatus === 'error') {
-        setError("Cannot connect to the server. Please check your connection.");
-        return;
-    }
-    
     setLoading(true);
 
-    const result = await login(userRole, email, password);
-    
-    if (result.success) {
-        navigate('/dashboard');
-    } else {
-      setError(result.message || 'An unexpected error occurred.');
+    try {
+      const loggedInUser = await login(email, password);
+      // Role check
+      if (loggedInUser.role !== userRole) {
+          setError('Invalid credentials or role mismatch.');
+      } else {
+          navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(err.message || 'Invalid credentials. Please check and try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const title = userRole.charAt(0).toUpperCase() + userRole.slice(1);
@@ -88,15 +97,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-const ErrorMessage: React.FC<{ message: string }> = ({ message }) => (
-    <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-red-500/20 border border-red-500/50 text-red-300 p-3 rounded-lg flex items-center space-x-3 text-sm"
-    >
-        <AlertTriangle size={20} />
-        <span>{message}</span>
-    </motion.div>
-);
-
-export default LoginPage;
+export default Login;
