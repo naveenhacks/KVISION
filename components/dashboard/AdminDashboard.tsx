@@ -87,7 +87,7 @@ const AdminSidebar: React.FC<{
                 variants={sidebarVariants}
                 initial="closed"
                 animate={isOpen ? "open" : "closed"}
-                className="fixed top-0 left-0 h-full w-64 bg-brand-light-blue/80 dark:bg-brand-deep-blue/80 backdrop-blur-lg border-r border-white/10 z-40 lg:translate-x-0"
+                className="fixed top-0 left-0 h-screen w-64 bg-gradient-to-b from-brand-light-blue to-brand-deep-blue rounded-r-2xl shadow-2xl z-40 lg:translate-x-0"
             >
                 <div className="p-4 flex flex-col h-full">
                     {/* Profile Section */}
