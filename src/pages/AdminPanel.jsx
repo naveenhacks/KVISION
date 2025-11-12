@@ -97,7 +97,7 @@ const StudentsSection = ({ students, onAdd, onDelete }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {students.map(student => (
+                        {students.length > 0 ? students.map(student => (
                             <tr key={student.uid} className="border-b border-white/10 hover:bg-white/5">
                                 <td className="p-3 text-white font-medium">{student.name}</td>
                                 <td className="p-3 text-gray-300">{student.id}</td>
@@ -106,7 +106,13 @@ const StudentsSection = ({ students, onAdd, onDelete }) => {
                                     <button onClick={() => onDelete(student.uid)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-md"><Trash2 size={16}/></button>
                                 </td>
                             </tr>
-                        ))}
+                        )) : (
+                            <tr>
+                                <td colSpan="4" className="text-center text-brand-silver-gray py-8">
+                                    No students have been added yet.
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
@@ -126,12 +132,18 @@ const TeachersSection = ({ teachers }) => (
                     </tr>
                 </thead>
                 <tbody>
-                    {teachers.map(teacher => (
+                    {teachers.length > 0 ? teachers.map(teacher => (
                         <tr key={teacher.uid} className="border-b border-white/10 hover:bg-white/5">
                             <td className="p-3 text-white font-medium">{teacher.name}</td>
                             <td className="p-3 text-gray-300">{teacher.email}</td>
                         </tr>
-                    ))}
+                    )) : (
+                         <tr>
+                            <td colSpan="2" className="text-center text-brand-silver-gray py-8">
+                                No teachers have been added yet.
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>
@@ -142,12 +154,14 @@ const HomeworkSection = ({ homeworks }) => (
     <motion.div variants={contentVariants} initial="initial" animate="animate" exit="exit">
         <h2 className="text-2xl font-bold text-white mb-6">Homework</h2>
         <div className="bg-brand-light-blue p-4 rounded-xl border border-white/10 space-y-3">
-             {homeworks.map(hw => (
+             {homeworks.length > 0 ? homeworks.map(hw => (
                 <div key={hw.id} className="bg-white/5 p-3 rounded-lg">
                     <p className="font-bold text-white">{hw.title}</p>
                     <p className="text-sm text-brand-silver-gray">Due: {hw.dueDate} | Status: {hw.completedBy?.length > 0 ? `${hw.completedBy.length} completed` : 'Pending'}</p>
                 </div>
-            ))}
+            )) : (
+                <p className="text-center text-brand-silver-gray py-4">No homework has been assigned yet.</p>
+            )}
         </div>
     </motion.div>
 );
@@ -156,12 +170,14 @@ const AnnouncementsSection = ({ announcements }) => (
     <motion.div variants={contentVariants} initial="initial" animate="animate" exit="exit">
         <h2 className="text-2xl font-bold text-white mb-6">Announcements</h2>
         <div className="bg-brand-light-blue p-4 rounded-xl border border-white/10 space-y-3">
-            {announcements.map(ann => (
+            {announcements.length > 0 ? announcements.map(ann => (
                 <div key={ann.id} className="bg-white/5 p-3 rounded-lg">
                     <p className="text-white">{ann.content}</p>
                     <p className="text-xs text-gray-500 mt-1">{new Date(ann.date).toLocaleString()}</p>
                 </div>
-            ))}
+            )) : (
+                <p className="text-center text-brand-silver-gray py-4">No announcements have been posted.</p>
+            )}
         </div>
     </motion.div>
 );
@@ -170,13 +186,15 @@ const NotificationsSection = ({ notifications }) => (
     <motion.div variants={contentVariants} initial="initial" animate="animate" exit="exit">
         <h2 className="text-2xl font-bold text-white mb-6">Notifications</h2>
          <div className="bg-brand-light-blue p-4 rounded-xl border border-white/10 space-y-3">
-            {notifications.map(n => (
+            {notifications.length > 0 ? notifications.map(n => (
                 <div key={n.id} className={`bg-white/5 p-3 rounded-lg ${n.readBy.includes('admin') ? 'opacity-50' : ''}`}>
                     <p className="font-semibold text-white">{n.title}</p>
                     <p className="text-sm text-brand-silver-gray">{n.content}</p>
                     <p className="text-xs text-gray-500 mt-1">{new Date(n.date).toLocaleString()}</p>
                 </div>
-            ))}
+            )) : (
+                 <p className="text-center text-brand-silver-gray py-4">There are no notifications.</p>
+            )}
         </div>
     </motion.div>
 );
