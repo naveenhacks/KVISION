@@ -1,7 +1,7 @@
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { Notification, UserRole } from '../types.ts';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from "firebase/firestore";
 import { db } from '../firebaseConfig.ts';
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { Notification, UserRole } from '../types.ts';
 
 interface NotificationContextType {
     notifications: Notification[];
@@ -22,30 +22,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, 'notifications'), (snapshot) => {
-            const data = snapshot.docs.map(doc => {
-                const docData = doc.data();
-                return {
-                    ...docData,
-                    id: doc.id,
-                    date: docData.date?.toDate ? docData.date.toDate().toISOString() : new Date().toISOString(),
-                } as Notification
-            });
-            setNotifications(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const q = query(collection(db, "notifications"), orderBy("date", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Notification));
+            setNotifications(list);
         });
         return () => unsubscribe();
     }, []);
 
     const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => {
-        await addDoc(collection(db, 'notifications'), {
+        await addDoc(collection(db, "notifications"), {
             ...notification,
-            date: serverTimestamp(),
+            date: new Date().toISOString(),
             readBy: [],
         });
     }, []);
 
     const deleteNotification = useCallback(async (id: string) => {
-        await deleteDoc(doc(db, 'notifications', id));
+        await deleteDoc(doc(db, "notifications", id));
     }, []);
 
     const getNotificationsForUser = useCallback((userRole: UserRole, userId: string): Notification[] => {
@@ -54,21 +51,22 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
     const getUnreadCount = useCallback((userRole: UserRole, userId: string): number => {
         const userNotifs = getNotificationsForUser(userRole, userId);
-        return userNotifs.filter(n => !n.readBy.includes(userId)).length;
+        return userNotifs.filter(n => !n.readBy?.includes(userId)).length;
     }, [notifications, getNotificationsForUser]);
 
     const markAsRead = useCallback(async (userId: string, userRole: UserRole) => {
-        const userNotifs = getNotificationsForUser(userRole, userId);
-        const promises: Promise<void>[] = [];
-        userNotifs.forEach((n) => {
-            if (!n.readBy.includes(userId)) {
-                promises.push(updateDoc(doc(db, 'notifications', n.id), {
-                    readBy: arrayUnion(userId)
-                }));
-            }
-        });
-        await Promise.all(promises);
-    }, [getNotificationsForUser]);
+        // In Firestore, we must update each doc individually.
+        // Optimization: Filter locally first
+        const unreadDocs = notifications.filter(n => 
+            (n.target === 'all' || n.target === userRole) && 
+            !n.readBy?.includes(userId)
+        );
+
+        await Promise.all(unreadDocs.map(n => {
+            const newReadBy = [...(n.readBy || []), userId];
+            return updateDoc(doc(db, "notifications", n.id), { readBy: newReadBy });
+        }));
+    }, [notifications]);
 
     const contextValue = useMemo(() => ({
         notifications,

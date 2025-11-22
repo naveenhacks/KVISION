@@ -1,20 +1,18 @@
 
-
 import React, { useState, useEffect, useContext, useMemo } from 'react';
-// FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { AuthContext } from '../../context/AuthContext.tsx';
 import { HomeworkContext } from '../../context/HomeworkContext.tsx';
 import { NotificationContext } from '../../context/NotificationContext.tsx';
-import { User, UserRole, Homework, Notification } from '../../types.ts';
+import { User, UserRole, Homework } from '../../types.ts';
 import AdminMessaging from './messaging/AdminMessaging.tsx';
 import Alert from '../common/Alert.tsx';
 import AdminHomepageManager from './admin/HomepageManager.tsx';
 import ConfirmationModal from '../common/ConfirmationModal.tsx';
 import { 
-    Users, UserPlus, Trash2, Edit, X, Copy, Check, CheckCircle, ShieldAlert, 
-    LayoutDashboard, GraduationCap, Presentation, BookMarked, MessageSquare, Bell, Settings, Menu, Search,
-    Shield, ShieldOff, Globe, FileText, Eye, EyeOff, Send
+    Users, UserPlus, Trash2, Edit, X, Copy, Check, ShieldAlert, 
+    LayoutDashboard, GraduationCap, Presentation, BookMarked, MessageSquare, Bell, Settings, Search,
+    Shield, ShieldOff, Globe, FileText, Eye, EyeOff, Send, CheckCircle
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
@@ -26,13 +24,13 @@ const colorMap: { [key: string]: { bg: string; text: string } } = {
     green: { bg: 'bg-green-500/20', text: 'text-green-400' },
 };
 
-// FIX: Changed icon prop type from React.ReactNode to React.ReactElement to resolve cloneElement error.
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactElement; color: string }> = ({ title, value, icon, color }) => {
     const { bg, text } = colorMap[color] || { bg: 'bg-gray-500/20', text: 'text-gray-400' };
     return (
         <div className="bg-brand-light-blue p-5 rounded-xl border border-white/10 flex items-center space-x-4 transform transition-transform hover:-translate-y-1 h-full">
-            {/* FIX: Cast icon to React.ReactElement<any> to satisfy TypeScript's type checking for cloneElement. This is safe because lucide-react icons accept a className prop. */}
-            <div className={`p-3 ${bg} rounded-full`}>{React.cloneElement(icon as React.ReactElement<any>, { className: text })}</div>
+            <div className={`p-3 ${bg} rounded-full`}>
+                {React.cloneElement(icon, { className: text })}
+            </div>
             <div>
                 <p className="text-brand-silver-gray text-sm">{title}</p>
                 <p className="text-2xl font-bold text-white">{value}</p>
@@ -53,7 +51,6 @@ const navItems = [
     { id: 'settings', label: 'Settings', icon: <Settings size={20} /> },
 ];
 
-// FIX: Add Variants type to fix type error for 'ease' property.
 const contentVariants: Variants = {
   initial: { opacity: 0, y: 20 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -159,7 +156,9 @@ const TeacherModal: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        if (formData) {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -250,7 +249,9 @@ const StudentModal: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        if (formData) {
+             setFormData({ ...formData, [name]: value });
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -809,6 +810,16 @@ const AdminNotifications: React.FC = () => {
     );
 };
 
+const SettingsSection: React.FC = () => (
+    <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-white">Settings</h1>
+        <div className="bg-brand-light-blue p-6 rounded-xl border border-white/10 text-center text-brand-silver-gray">
+            <Settings size={48} className="mx-auto mb-4 opacity-50" />
+            <p className="text-lg">System settings and configuration panel is under construction.</p>
+        </div>
+    </div>
+);
+
 // --- MAIN ADMIN DASHBOARD LAYOUT ---
 const AdminDashboard: React.FC = () => {
     const [activeView, setActiveView] = useState('overview');
@@ -830,7 +841,7 @@ const AdminDashboard: React.FC = () => {
             case 'students': return <AdminStudentManagement onMessageUser={handleMessageUserClick} />;
             case 'homework': return <HomeworkControl />;
             case 'notifications': return <AdminNotifications />;
-            case 'settings': return <div>Settings content goes here</div>;
+            case 'settings': return <SettingsSection />;
             default: return <AdminOverview />;
         }
     }
@@ -844,11 +855,6 @@ const AdminDashboard: React.FC = () => {
                 setIsOpen={setSidebarOpen}
              />
              <main className="flex-1 overflow-y-auto overflow-x-hidden">
-                <button 
-                  onClick={() => setSidebarOpen(true)} 
-                  className="lg:hidden fixed top-[4.5rem] left-4 z-30 p-2 rounded-md bg-brand-light-blue/50 backdrop-blur-sm text-white">
-                    <Menu />
-                </button>
                  <div className="p-4 sm:p-6 lg:p-8">
                      <AnimatePresence mode="wait">
                          <motion.div

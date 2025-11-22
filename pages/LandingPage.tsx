@@ -3,11 +3,10 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 // FIX: Import Variants type from framer-motion to fix type errors.
 import { motion, AnimatePresence, Variants } from 'framer-motion';
-import { ThemeContext } from '../context/ThemeContext.tsx';
 import { LandingPageContext } from '../context/LandingPageContext.tsx';
 import { UserRole } from '../types.ts';
 import {
-    Menu, X, Sun, Moon, ArrowUp, User, GraduationCap, Shield,
+    X, ArrowUp, User, GraduationCap, Shield,
     MapPin, Mail, Phone, Globe, Building2
 } from 'lucide-react';
 
@@ -21,32 +20,7 @@ const navLinks = [
 
 const ParticleBackground: React.FC = () => <div className="particle-bg"></div>;
 
-const ThemeToggle: React.FC = () => {
-    const { theme, toggleTheme } = useContext(ThemeContext);
-    return (
-        <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full text-accent-blue bg-glass-dark hover:bg-glass-dark/50 dark:bg-white/10 dark:hover:bg-white/20 transition-colors"
-            aria-label="Toggle theme"
-        >
-            <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                    key={theme}
-                    initial={{ y: -20, opacity: 0, rotate: -90 }}
-                    animate={{ y: 0, opacity: 1, rotate: 0 }}
-                    exit={{ y: 20, opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.2 }}
-                >
-                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                </motion.div>
-            </AnimatePresence>
-        </button>
-    );
-};
-
 const Header: React.FC = () => {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     return (
         <header className="absolute top-0 left-0 w-full z-50 bg-transparent">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -65,49 +39,9 @@ const Header: React.FC = () => {
                                 <span className="absolute bottom-[-4px] left-0 w-full h-0.5 bg-accent-blue transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-center"></span>
                             </motion.a>
                         ))}
-                        <motion.div
-                             initial={{ opacity: 0, y: -20 }}
-                             animate={{ opacity: 1, y: 0 }}
-                             transition={{ duration: 0.5, delay: 0.7 }}
-                        >
-                            <ThemeToggle />
-                        </motion.div>
                     </nav>
-                    <div className="lg:hidden flex items-center gap-4">
-                        <ThemeToggle />
-                        <button onClick={() => setIsMenuOpen(true)} aria-label="Open menu" className="p-2 text-white">
-                            <Menu />
-                        </button>
-                    </div>
                 </div>
             </div>
-
-            <AnimatePresence>
-                {isMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm lg:hidden"
-                        onClick={() => setIsMenuOpen(false)}
-                    >
-                        <motion.div
-                             initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                             className="fixed top-0 right-0 h-full w-4/5 max-w-sm bg-theme-dark/90 shadow-2xl"
-                             onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex justify-end p-6">
-                                <button onClick={() => setIsMenuOpen(false)} aria-label="Close menu" className="p-2 text-white"> <X /> </button>
-                            </div>
-                            <nav className="flex flex-col items-center justify-center h-full -mt-20 space-y-8">
-                                {navLinks.map(link => (
-                                    <a key={link.name} href={link.href} onClick={() => setIsMenuOpen(false)} className="text-3xl font-semibold text-gray-300 hover:text-white">
-                                        {link.name}
-                                    </a>
-                                ))}
-                            </nav>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
         </header>
     );
 };

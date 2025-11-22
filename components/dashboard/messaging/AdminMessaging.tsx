@@ -1,18 +1,15 @@
 
-
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageContext, generateConversationId, Conversation } from '../../../context/MessageContext';
-import { AuthContext } from '../../../context/AuthContext';
-// FIX: Import UploadedFile type to resolve type errors in FileMessage component.
-import { Message, User, UserRole, UploadedFile } from '../../../types';
-import { Send, Search, ArrowLeft, MessageSquare, Trash2, Download, FileText, Image } from 'lucide-react';
-import Alert from '../../common/Alert';
-import ConfirmationModal from '../../common/ConfirmationModal';
+import { MessageContext, generateConversationId } from '../../../context/MessageContext.tsx';
+import { AuthContext } from '../../../context/AuthContext.tsx';
+import { Message, User, UserRole, UploadedFile } from '../../../types.ts';
+import { Send, ArrowLeft, MessageSquare, Trash2, Download, FileText } from 'lucide-react';
+import Alert from '../../common/Alert.tsx';
+import ConfirmationModal from '../../common/ConfirmationModal.tsx';
 
 const ADMIN_MESSAGING_ID = 'kvision_admin_inbox';
 
-// FIX: Change file prop type to UploadedFile to fix property access errors.
 const FileMessage: React.FC<{ file: UploadedFile }> = ({ file }) => {
     if (file.type.startsWith('image/')) {
         return (
@@ -40,24 +37,26 @@ const AdminMessaging: React.FC<{
     selectedUserId: string | null;
     setSelectedUserId: (userId: string | null) => void;
 }> = ({ selectedUserId, setSelectedUserId }) => {
-    const { conversations, sendMessage, deleteMessage, getConversationsForUser } = useContext(MessageContext);
+    const { conversations, sendMessage, deleteMessage } = useContext(MessageContext);
     const { users } = useContext(AuthContext);
     const [messageText, setMessageText] = useState('');
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
     
-    const conversationList = getConversationsForUser(ADMIN_MESSAGING_ID);
     const selectedUser = users.find(u => u.id === selectedUserId);
     
+    // The ID used in the context for the conversation document
     const selectedConversationId = selectedUserId ? generateConversationId(ADMIN_MESSAGING_ID, selectedUserId) : null;
-    // FIX: Correctly find the conversation object from the array and then access its `messages` property.
-    // The original code was trying to access an array by a string key, which is incorrect.
-    const selectedConversation = conversations.find(c => c.id === selectedConversationId)?.messages || [];
+    
+    // Find the actual conversation object from context. 
+    // NOTE: In MessageContext, conversations for Admin are loaded where 'kvision_admin_inbox' is a participant.
+    const selectedConversationObj = conversations.find(c => c.id === selectedConversationId);
+    const selectedMessages = selectedConversationObj?.messages || [];
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [selectedConversation]);
+    }, [selectedMessages]);
     
     const handleSendMessage = (e: React.FormEvent) => {
         e.preventDefault();
@@ -99,8 +98,13 @@ const AdminMessaging: React.FC<{
     );
 
     const studentUsers = users.filter(u => u.role === UserRole.Student);
-    const convoUsers = new Set(conversationList.map(c => c.otherUser.id));
-    const usersWithNoConvo = studentUsers.filter(u => !convoUsers.has(u.id));
+    
+    // Map of user IDs that have active conversations
+    const usersWithConversations = new Set(conversations.map(c => c.otherUser.id));
+    
+    // Separate active conversations from potential new ones
+    const activeConversationUsers = conversations.map(c => c.otherUser);
+    const potentialNewUsers = studentUsers.filter(u => !usersWithConversations.has(u.id));
 
     return (
         <>
@@ -121,8 +125,10 @@ const AdminMessaging: React.FC<{
                         <h2 className="text-2xl font-bold text-white">Student Messages</h2>
                     </div>
                     <div className="flex-grow overflow-y-auto p-2">
-                        <p className="px-3 py-2 text-xs font-semibold text-brand-silver-gray uppercase">Active Chats</p>
-                        {conversationList.map(({ otherUser, messages }) => (
+                        {activeConversationUsers.length > 0 && (
+                             <p className="px-3 py-2 text-xs font-semibold text-brand-silver-gray uppercase">Active Chats</p>
+                        )}
+                        {conversations.map(({ otherUser, messages }) => (
                             <ConversationListItem 
                                 key={otherUser.id} 
                                 user={otherUser} 
@@ -130,8 +136,11 @@ const AdminMessaging: React.FC<{
                                 isSelected={selectedUserId === otherUser.id} 
                             />
                         ))}
-                         <p className="px-3 py-2 mt-4 text-xs font-semibold text-brand-silver-gray uppercase">Start a new Chat</p>
-                         {usersWithNoConvo.map(user => (
+                         
+                         {potentialNewUsers.length > 0 && (
+                            <p className="px-3 py-2 mt-4 text-xs font-semibold text-brand-silver-gray uppercase">Start a new Chat</p>
+                         )}
+                         {potentialNewUsers.map(user => (
                              <ConversationListItem 
                                 key={user.id} 
                                 user={user} 
@@ -157,7 +166,7 @@ const AdminMessaging: React.FC<{
                             </div>
                             <div className="flex-grow overflow-y-auto p-4 space-y-4">
                                 <AnimatePresence>
-                                    {selectedConversation.map(msg => (
+                                    {selectedMessages.map(msg => (
                                         <motion.div
                                             key={msg.id}
                                             layout
@@ -198,9 +207,6 @@ const AdminMessaging: React.FC<{
                                     <button type="submit" className="bg-brand-neon-purple p-3 rounded-lg text-white disabled:bg-opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 transition-all aspect-square">
                                         <Send size={20} />
                                     </button>
-                       
-                       
-                       
                                 </form>
                             </div>
                         </>

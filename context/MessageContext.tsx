@@ -1,10 +1,8 @@
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useContext, useEffect } from 'react';
+import { collection, onSnapshot, doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { db } from '../firebaseConfig.ts';
 import { Message, User, UserRole } from '../types.ts';
 import { AuthContext } from './AuthContext.tsx';
-import { db } from '../firebaseConfig.ts';
-// FIX: Add setDoc to imports.
-import { collection, onSnapshot, addDoc, doc, deleteDoc, updateDoc, where, query, serverTimestamp, orderBy, writeBatch, setDoc } from 'firebase/firestore';
-
 
 export const generateConversationId = (userId1: string, userId2: string) => {
     return [userId1, userId2].sort().join('--');
@@ -22,7 +20,6 @@ interface MessageContextType {
     sendMessage: (senderId: string, receiverId: string, content: Message['content']) => Promise<void>;
     deleteMessage: (conversationId: string, messageId: string) => Promise<void>;
     markConversationAsRead: (conversationId: string, readerId: string) => Promise<void>;
-    // FIX: Add getConversationsForUser to the context type to match the provided value.
     getConversationsForUser: (userId: string) => Conversation[];
 }
 
@@ -32,48 +29,54 @@ interface MessageProviderProps {
     children: ReactNode;
 }
 
+// Firestore Structure: Collection 'conversations' -> Doc ID 'user1--user2' -> Field 'messages' (array) or Subcollection
+// For this scale, Array of messages in a doc is simplest, provided < 1MB.
+
 const ADMIN_VIRTUAL_USER_ID = 'kvision_admin_inbox';
 
 export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) => {
     const { user, users } = useContext(AuthContext);
-    const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [rawConversations, setRawConversations] = useState<any[]>([]);
 
     useEffect(() => {
         if (!user) {
-            setConversations([]);
+            setRawConversations([]);
             return;
         }
 
-        // FIX: Use the virtual admin ID for admins to fetch all student conversations.
-        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : user.id;
-        const q = query(collection(db, "conversations"), where("participants", "array-contains", messageUserId));
-        
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const convos: Conversation[] = [];
-            const adminUser: User = { id: ADMIN_VIRTUAL_USER_ID, uid: ADMIN_VIRTUAL_USER_ID, name: 'KVISION Admin', email: '', role: UserRole.Admin };
-            const allUsers = [...users, adminUser];
+        const unsubscribe = onSnapshot(collection(db, "conversations"), (snapshot) => {
+            const convos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            setRawConversations(convos);
+        });
+        return () => unsubscribe();
+    }, [user]);
 
-            querySnapshot.forEach(doc => {
-                const data = doc.data();
-                const otherUserId = data.participants.find((p: string) => p !== messageUserId);
+    const conversations = useMemo(() => {
+        if (!user) return [];
+
+        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : user.id;
+        const adminUser: User = { id: ADMIN_VIRTUAL_USER_ID, uid: ADMIN_VIRTUAL_USER_ID, name: 'KVISION Admin', email: '', role: UserRole.Admin };
+        const allUsers = [...users, adminUser];
+
+        return rawConversations
+            .filter((c: any) => c.participants && c.participants.includes(messageUserId))
+            .map((c: any) => {
+                const otherUserId = c.participants.find((p: string) => p !== messageUserId);
                 const otherUser = allUsers.find(u => u.id === otherUserId);
                 
-                if (otherUser) {
-                     const messages = (data.messages || []).map((msg: any) => ({
-                        ...msg,
-                        timestamp: msg.timestamp?.toDate ? msg.timestamp.toDate().toISOString() : new Date().toISOString()
-                    }));
+                if (!otherUser) return null;
 
-                    convos.push({
-                        id: doc.id,
-                        otherUser,
-                        messages,
-                        unreadCount: messages.filter((m: Message) => m.receiverId === messageUserId && m.status !== 'read').length
-                    });
-                }
-            });
-            
-             convos.sort((a, b) => {
+                const msgs = (c.messages || []) as Message[];
+
+                return {
+                    id: c.id,
+                    otherUser,
+                    messages: msgs,
+                    unreadCount: msgs.filter(m => m.receiverId === messageUserId && m.status !== 'read').length
+                };
+            })
+            .filter((c): c is Conversation => c !== null)
+            .sort((a, b) => {
                 const lastMsgA = a.messages[a.messages.length - 1];
                 const lastMsgB = b.messages[b.messages.length - 1];
                 if (!lastMsgA) return 1;
@@ -81,67 +84,69 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
                 return new Date(lastMsgB.timestamp).getTime() - new Date(lastMsgA.timestamp).getTime();
             });
 
-            setConversations(convos);
-        });
-
-        return () => unsubscribe();
-
-    }, [user, users]);
+    }, [user, users, rawConversations]);
 
     const getConversationsForUser = useCallback((userId: string): Conversation[] => {
-        // This function becomes a simple pass-through since the useEffect handles the logic now.
         return conversations;
     }, [conversations]);
 
     const sendMessage = useCallback(async (senderId: string, receiverId: string, content: Message['content']) => {
         const conversationId = generateConversationId(senderId, receiverId);
-        const convoRef = doc(db, "conversations", conversationId);
         
-        const newMessage: Omit<Message, 'id'> & { timestamp: any } = {
+        const newMessage: Message = {
+            id: `msg-${Date.now()}`,
             content,
-            timestamp: serverTimestamp(),
+            timestamp: new Date().toISOString(),
             senderId,
             receiverId,
             status: 'sent',
         };
         
-        const existingConvo = conversations.find(c => c.id === conversationId);
-        
-        if (existingConvo) {
-            const updatedMessages = [...existingConvo.messages, { ...newMessage, id: `msg-${Date.now()}` }];
-            await updateDoc(convoRef, { messages: updatedMessages });
-        } else {
-             await setDoc(convoRef, {
+        const convoRef = doc(db, "conversations", conversationId);
+        const convoSnap = await getDoc(convoRef);
+
+        if (!convoSnap.exists()) {
+            await setDoc(convoRef, {
                 participants: [senderId, receiverId],
-                messages: [{...newMessage, id: `msg-${Date.now()}`}]
+                messages: [newMessage]
+            });
+        } else {
+            await updateDoc(convoRef, {
+                messages: arrayUnion(newMessage)
             });
         }
 
-    }, [conversations]);
+    }, []);
 
     const deleteMessage = useCallback(async (conversationId: string, messageId: string) => {
-        const convo = conversations.find(c => c.id === conversationId);
-        if (convo) {
-            const updatedMessages = convo.messages.filter(m => m.id !== messageId);
-            await updateDoc(doc(db, "conversations", conversationId), { messages: updatedMessages });
+        const convoRef = doc(db, "conversations", conversationId);
+        const convoSnap = await getDoc(convoRef);
+        if (convoSnap.exists()) {
+            const data = convoSnap.data();
+            const updatedMessages = (data.messages as Message[]).filter(m => m.id !== messageId);
+            await updateDoc(convoRef, { messages: updatedMessages });
         }
-    }, [conversations]);
+    }, []);
 
     const markConversationAsRead = useCallback(async (conversationId: string, readerId: string) => {
-        if (!user) return;
-        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : readerId;
+        const messageUserId = (user?.role === UserRole.Admin) ? ADMIN_VIRTUAL_USER_ID : readerId;
         
-        const convo = conversations.find(c => c.id === conversationId);
-        if (convo) {
-            const updatedMessages = convo.messages.map(msg => 
+        const convoRef = doc(db, "conversations", conversationId);
+        const convoSnap = await getDoc(convoRef);
+        
+        if (convoSnap.exists()) {
+            const data = convoSnap.data();
+            const updatedMessages = (data.messages as Message[]).map(msg => 
                 msg.receiverId === messageUserId && msg.status !== 'read' 
                 ? { ...msg, status: 'read' as const } 
                 : msg
             );
-            await updateDoc(doc(db, "conversations", conversationId), { messages: updatedMessages });
+            // Only update if changes were made to avoid loops
+            if (JSON.stringify(data.messages) !== JSON.stringify(updatedMessages)) {
+                await updateDoc(convoRef, { messages: updatedMessages });
+            }
         }
-    }, [conversations, user]);
-
+    }, [user]);
 
     const contextValue = useMemo(() => ({
         conversations,

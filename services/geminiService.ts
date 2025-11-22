@@ -22,7 +22,7 @@ export const getAiResponse = async (prompt: string, role: string): Promise<strin
       }
     });
 
-    return response.text;
+    return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error) {
     console.error("Error calling Gemini API:", error);
     return "I'm sorry, I encountered an error while processing your request. Please check your connection or try again later.";

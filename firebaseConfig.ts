@@ -1,20 +1,18 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyB_nDxRMp_wNVoh0Y33M2kcM-0NN1rHb7o",
-  authDomain: "kvision-100e7.firebaseapp.com",
-  projectId: "kvision-100e7",
-  storageBucket: "kvision-100e7.appspot.com",
-  messagingSenderId: "548673823145",
-  appId: "1:548673823145:web:d440e2c60b348b258e24b8"
+  apiKey: "AIzaSyCdQilvCxlmz4bzSkuCVVEiwnLgivuW8V4",
+  authDomain: "kv-unnao.firebaseapp.com",
+  projectId: "kv-unnao",
+  storageBucket: "kv-unnao.firebasestorage.app",
+  messagingSenderId: "579438930224",
+  appId: "1:579438930224:web:0b040e1623df512e4cc0f5"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Export Firebase services
-export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);

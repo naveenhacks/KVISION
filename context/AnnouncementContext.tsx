@@ -1,7 +1,7 @@
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { Announcement } from '../types.ts';
+import { collection, onSnapshot, addDoc, query, orderBy } from "firebase/firestore";
 import { db } from '../firebaseConfig.ts';
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Announcement } from '../types.ts';
 
 interface AnnouncementContextType {
     announcements: Announcement[];
@@ -21,24 +21,21 @@ export const AnnouncementProvider: React.FC<AnnouncementProviderProps> = ({ chil
     const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, 'announcements'), (snapshot) => {
-            const data = snapshot.docs.map(doc => {
-                const docData = doc.data();
-                return {
-                    ...docData,
-                    id: doc.id,
-                    date: docData.date?.toDate ? docData.date.toDate().toISOString() : new Date().toISOString(),
-                } as Announcement
-            });
-            setAnnouncements(data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        const q = query(collection(db, "announcements"), orderBy("date", "desc"));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Announcement));
+            setAnnouncements(list);
         });
         return () => unsubscribe();
     }, []);
 
     const addAnnouncement = useCallback(async (announcement: Omit<Announcement, 'id' | 'date'>) => {
-        await addDoc(collection(db, 'announcements'), {
+        await addDoc(collection(db, "announcements"), {
             ...announcement,
-            date: serverTimestamp(),
+            date: new Date().toISOString(),
         });
     }, []);
     

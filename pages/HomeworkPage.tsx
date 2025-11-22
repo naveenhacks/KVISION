@@ -7,6 +7,7 @@ import { AuthContext } from '../context/AuthContext.tsx';
 import { Homework, UploadedFile } from '../types.ts';
 import DashboardLayout from '../components/layout/DashboardLayout.tsx';
 import { ArrowLeft, UploadCloud, File as FileIcon, X, CheckCircle, ShieldAlert, Loader } from 'lucide-react';
+import { uploadHomeworkFile } from '../services/firebaseService.ts';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -51,6 +52,7 @@ const HomeworkPage: React.FC = () => {
     const [dueDate, setDueDate] = useState('');
     const [description, setDescription] = useState('');
     const [file, setFile] = useState<UploadedFile | null>(null);
+    const [rawFile, setRawFile] = useState<File | null>(null); // NEW: Track raw file for upload
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
@@ -84,22 +86,11 @@ const HomeworkPage: React.FC = () => {
             return;
         }
 
+        setRawFile(selectedFile); // Store for upload on submit
+
         const reader = new FileReader();
-        reader.onprogress = (event) => {
-            if (event.lengthComputable) {
-                const progress = Math.round((event.loaded / event.total) * 100);
-                setUploadProgress(progress);
-            }
-        };
-        reader.onloadstart = () => {
-            setIsUploading(true);
-            setUploadProgress(0);
-        };
-        reader.onloadend = () => {
-            setIsUploading(false);
-            setUploadProgress(100);
-        };
         reader.onload = () => {
+            // Preview only
             setFile({
                 name: selectedFile.name,
                 type: selectedFile.type,
@@ -129,17 +120,28 @@ const HomeworkPage: React.FC = () => {
             return;
         }
         
-        const homeworkData: Omit<Homework, 'id' | 'uploadDate' | 'completedBy'> = { 
-            title, 
-            course, 
-            dueDate, 
-            description, 
-            teacherId: user.id,
-            teacherName: user.name,
-            file: file || undefined 
-        };
+        setIsUploading(true);
 
         try {
+            let uploadedFile: UploadedFile | undefined = file || undefined;
+
+            // If there is a new raw file, upload it to Firebase Storage
+            if (rawFile) {
+                // Use a temp ID for path if new, or existing ID
+                const hwId = id || `temp-${Date.now()}`; 
+                uploadedFile = await uploadHomeworkFile(rawFile, hwId);
+            }
+
+            const homeworkData = { 
+                title, 
+                course, 
+                dueDate, 
+                description, 
+                teacherId: user.id,
+                teacherName: user.name,
+                file: uploadedFile
+            };
+
             if (isEditMode && id) {
                 await updateHomework(id, homeworkData);
                 setAlert({ message: 'Homework updated successfully!', type: 'success' });
@@ -149,7 +151,9 @@ const HomeworkPage: React.FC = () => {
             }
             setTimeout(() => navigate('/dashboard'), 1000);
         } catch (err) {
+            console.error(err);
             setAlert({ message: 'Failed to save homework.', type: 'error' });
+            setIsUploading(false);
         }
     };
 
@@ -216,9 +220,9 @@ const HomeworkPage: React.FC = () => {
                                 <div className="flex items-center space-x-3">
                                     <Loader className="animate-spin text-brand-light-purple"/>
                                     <div className="w-full bg-white/10 rounded-full h-2.5">
-                                        <div className="bg-brand-neon-purple h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
+                                        <div className="bg-brand-neon-purple h-2.5 rounded-full" style={{ width: `100%` }}></div>
                                     </div>
-                                    <span className="text-sm">{uploadProgress}%</span>
+                                    <span className="text-sm">Uploading...</span>
                                 </div>
                             ) : file && (
                                 <div className="flex items-center justify-between">
@@ -233,7 +237,7 @@ const HomeworkPage: React.FC = () => {
                                             <p className="text-xs text-brand-silver-gray">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                         </div>
                                     </div>
-                                    <button type="button" onClick={() => setFile(null)} className="p-2 rounded-full text-red-400 hover:bg-red-500/20"><X size={16}/></button>
+                                    <button type="button" onClick={() => { setFile(null); setRawFile(null); }} className="p-2 rounded-full text-red-400 hover:bg-red-500/20"><X size={16}/></button>
                                 </div>
                             )}
                         </motion.div>
@@ -244,7 +248,7 @@ const HomeworkPage: React.FC = () => {
 
                     <motion.div variants={containerVariants} className="flex justify-end space-x-4 pt-4">
                         <button type="button" onClick={() => navigate('/dashboard')} className="px-6 py-2 rounded-lg text-white bg-white/10 hover:bg-white/20 transition-colors">Cancel</button>
-                        <button type="submit" className="px-6 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80 transition-colors">{isEditMode ? 'Save Changes' : 'Upload Homework'}</button>
+                        <button type="submit" disabled={isUploading} className="px-6 py-2 rounded-lg text-white bg-brand-neon-purple hover:bg-opacity-80 transition-colors disabled:opacity-50">{isEditMode ? 'Save Changes' : 'Upload Homework'}</button>
                     </motion.div>
                 </form>
             </motion.div>

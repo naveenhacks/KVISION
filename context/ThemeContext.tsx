@@ -1,8 +1,5 @@
-
 import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { AuthContext } from './AuthContext.tsx';
-import { db } from '../firebaseConfig.ts';
-import { doc, updateDoc } from 'firebase/firestore';
 
 type Theme = 'light' | 'dark';
 
@@ -25,30 +22,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    // Set theme from user profile when available, otherwise default to dark
-    const userTheme = user?.preferences?.theme;
-    setTheme(userTheme || 'dark');
+    // Check local storage first
+    const storedTheme = localStorage.getItem('theme') as Theme;
+    if (storedTheme) {
+        setTheme(storedTheme);
+    } else {
+        // Fallback to user preference or default
+        const userTheme = user?.preferences?.theme;
+        setTheme(userTheme || 'dark');
+    }
   }, [user]);
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove(theme === 'dark' ? 'light' : 'dark');
     root.classList.add(theme);
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    if (user) {
-      try {
-        const userDocRef = doc(db, 'users', user.uid);
-        await updateDoc(userDocRef, {
-          'preferences.theme': newTheme,
-        });
-      } catch (error) {
-        console.error("Failed to update theme preference:", error);
-      }
-    }
+    // In a real app with backend, we would update the user preference here.
   };
 
   return (
