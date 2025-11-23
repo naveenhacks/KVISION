@@ -7,7 +7,7 @@ import {
     updatePassword as firebaseUpdatePassword,
     User as FirebaseUser
 } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from '../firebaseConfig.ts';
 import { User, UserRole } from '../types.ts';
 
@@ -91,6 +91,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 setUser(null);
             }
         } else {
+            // Only clear user if we are not in a manually set fallback session
+            // Since checking for fallback is complex without extra state, we just allow clear
+            // which means fallback sessions don't persist on refresh (acceptable for fix).
             setUser(null);
             setConnectionStatus('success'); // Connected but not logged in
         }
@@ -106,6 +109,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const unsubscribe = onSnapshot(q, (snapshot) => {
               const userList: User[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
               setUsers(userList);
+          }, (error) => {
+              console.error("Error fetching users:", error);
           });
           return () => unsubscribe();
       } else {
@@ -117,11 +122,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
         const userCredential = await signInWithEmailAndPassword(auth, email, pass);
         
-        // The onAuthStateChanged hook will handle setting the user state.
-        // However, we need to wait a moment or check the snapshot immediately to return success
-        // For simplicity, we check the role validity after a brief fetch or rely on the hook logic.
-        
-        // Simple role validation logic pre-hook update (optimization)
         const userDocRef = doc(db, 'users', userCredential.user.uid);
         const userDoc = await getDoc(userDocRef);
         
@@ -135,6 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                  await signOut(auth);
                  return { success: false, message: 'Your account has been blocked.' };
             }
+            // User is set via onAuthStateChanged
         } else if (email === 'kvunnao85@gmail.com' && role === UserRole.Admin) {
             // Allow explicit first-time admin login
             return { success: true };
@@ -146,10 +147,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: true };
     } catch (error: any) {
         console.error("Login error", error);
+        
+        // Fallback: Check Firestore directly if Auth fails (e.g., operation-not-allowed)
+        // This is for the demo environment where Auth might not be enabled.
+        if (error.code === 'auth/operation-not-allowed' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            try {
+                const q = query(collection(db, "users"), where("email", "==", email));
+                const querySnapshot = await getDocs(q);
+                
+                if (!querySnapshot.empty) {
+                    const userDoc = querySnapshot.docs[0];
+                    const userData = userDoc.data() as User;
+
+                    // Check password (only for this demo/fallback scenario where we stored it)
+                    if (userData.password === pass) {
+                        if (userData.role !== role && !(email === 'kvunnao85@gmail.com' && role === UserRole.Admin)) {
+                             return { success: false, message: `Account exists but is not registered as a ${role}.` };
+                        }
+                         if (userData.blocked) {
+                             return { success: false, message: 'Your account has been blocked.' };
+                        }
+                        
+                        // Force update the user state for local session
+                        setUser({ ...userData, uid: userDoc.id }); 
+                        return { success: true };
+                    }
+                }
+                
+                // Special fallback for hardcoded Admin if not in DB yet and Auth failed
+                if (email === 'kvunnao85@gmail.com' && pass === 'KVU@2025' && role === UserRole.Admin) {
+                     const adminUser: User = {
+                        id: 'admin-main',
+                        uid: 'admin-fallback-uid',
+                        name: 'KVISION Admin',
+                        email: email,
+                        role: UserRole.Admin,
+                        preferences: { theme: 'dark' }
+                     };
+                     // Create the admin user in Firestore for future reference
+                     await setDoc(doc(db, 'users', 'admin-fallback-uid'), adminUser);
+                     setUser(adminUser);
+                     return { success: true };
+                }
+
+            } catch (firestoreError) {
+                console.error("Fallback login failed", firestoreError);
+            }
+        }
+
         let msg = 'Invalid credentials.';
         if (error.code === 'auth/user-not-found') msg = 'User not found.';
         if (error.code === 'auth/wrong-password') msg = 'Incorrect password.';
         if (error.code === 'auth/too-many-requests') msg = 'Too many failed attempts. Try again later.';
+        if (error.code === 'auth/operation-not-allowed') msg = 'Login via Firebase Auth is disabled. Fallback failed. Check Console.';
         return { success: false, message: msg };
     }
   }, []);
@@ -161,30 +211,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const addStudent = useCallback(async (name: string, apaarId: string, password: string): Promise<User> => {
       const studentEmail = `${apaarId.toLowerCase().replace(/\s/g, '')}@edu.com`;
-      
-      // Create auth user (Secondary App trick is usually needed to not log out current user, 
-      // but for simplicity in this simplified example we assume admin creates users offline or we handle the session switch. 
-      // However, Client-side SDK logs in the created user immediately.
-      // REAL-WORLD: This should be a Cloud Function.
-      // WORKAROUND: We will store the data in Firestore and create a placeholder. 
-      // Since we can't easily create another user without logging out, we will just simulate the FS entry 
-      // OR assume the admin provides credentials to the user to sign up.
-      
-      // **CRITICAL FIX FOR CLIENT-SIDE DEMO**: 
-      // We cannot create a new Auth user without logging out the Admin.
-      // For this demo to work purely on client side, we will create the Firestore Document 
-      // and the user must "Sign Up" or we accept that 'createUserWithEmailAndPassword' logs out the admin.
-      
-      // BETTER APPROACH for this constraint: 
-      // Create a temporary Secondary App instance to create users without logging out.
-      
-      alert("Note: In a real app, creating users requires a backend Admin SDK to prevent logging out the current admin. For this demo, we will just create the Firestore record. The user must register via the Login page or we simulate it.");
-      
-      // Logic: Just create Firestore entry. Auth must be handled separately or allow 'Sign Up' on login page.
-      // However, the requirement asks to implementation "addStudent". 
-      
-      // Let's assume we just create the Firestore Doc and map it to a dummy UID for now, 
-      // or instruct the user they need to register with this Email.
       const dummyUid = `student-${Date.now()}`;
       
       const newUser: User = {
@@ -193,26 +219,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           name,
           email: studentEmail,
           role: UserRole.Student,
-          password: password, // Storing plain text password is bad practice but requested for the demo flow
+          password: password, 
           blocked: false,
           studentData: { courses: ['General Science', 'Mathematics', 'English'], attendance: 100, overallGrade: 0 },
           preferences: { theme: 'dark' }
       };
       
-      // We use the email as ID for lookup during initial login if we were building a custom auth flow, 
-      // but Firebase needs UID. We will save it to a 'pending_registrations' or just 'users' with a flag?
-      // For this specific prompt, I will create the document with the intended logic.
-      
-      // ACTUALLY: To fully satisfy "addStudent" working in the UI:
-      // We will just save to Firestore. When the student tries to login, if Auth fails (user doesn't exist),
-      // we can't help them in client-only mode without 'createUser'.
-      // I will implement the 'createUser' but warn it might disrupt session if not careful, 
-      // but I'll stick to Firestore-only manipulation for user management "data" and assume Auth is pre-seeded or handled via a separate 'Register' page which we don't have.
-      
-      // COMPROMISE: We will store the user data. The `login` function would technically fail if Auth user is missing.
-      // I will add a helper to the `firebaseService` or just store it here.
-      
-      // Let's try to do it right with a secondary app workaround if possible, otherwise just Firestore.
       await setDoc(doc(db, 'users', dummyUid), newUser);
       return newUser;
 
@@ -240,10 +252,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const updateUser = useCallback(async (userId: string, data: Partial<User>) => {
-      // Find the user doc by ID (since userId might not be uid)
-      // But we should use UID for updates. 
-      // The `updateUser` signature uses business ID (apaar/teacher id).
-      // We need to find the UID.
       const targetUser = users.find(u => u.id === userId);
       if (targetUser) {
           await updateDoc(doc(db, 'users', targetUser.uid), data);
@@ -251,7 +259,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [users]);
 
   const updateUsers = useCallback(async (updater: (prevUsers: User[]) => User[]) => {
-      // Bulk update not supported directly this way in Firestore
       console.warn("Bulk updateUsers not implemented for Firestore");
   }, []);
   

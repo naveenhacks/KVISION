@@ -28,6 +28,9 @@ export const AnnouncementProvider: React.FC<AnnouncementProviderProps> = ({ chil
                 ...doc.data()
             } as Announcement));
             setAnnouncements(list);
+        }, (error) => {
+            console.error("Error fetching announcements:", error);
+            // Fail gracefully if permissions denied
         });
         return () => unsubscribe();
     }, []);

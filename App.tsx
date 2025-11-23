@@ -8,9 +8,10 @@ import { HomeworkProvider } from './context/HomeworkContext.tsx';
 import { MessageProvider } from './context/MessageContext.tsx';
 import { NotificationProvider } from './context/NotificationContext.tsx';
 import { AnnouncementProvider } from './context/AnnouncementContext.tsx';
-// The public LandingPage does not use this, but it's required for the admin management panel.
 import { LandingPageProvider } from './context/LandingPageContext.tsx';
-// FIX: The component is now a default export.
+import { ClassProvider } from './context/ClassContext.tsx';
+import { ActivityProvider } from './context/ActivityContext.tsx';
+
 import LandingPage from './pages/LandingPage.tsx';
 import LoginPage from './pages/LoginPage.tsx';
 import DashboardPage from './pages/DashboardPage.tsx';
@@ -22,17 +23,21 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <ThemeProvider>
-        <HomeworkProvider>
-          <MessageProvider>
-            <NotificationProvider>
-              <AnnouncementProvider>
-                <LandingPageProvider>
-                  <AppContent />
-                </LandingPageProvider>
-              </AnnouncementProvider>
-            </NotificationProvider>
-          </MessageProvider>
-        </HomeworkProvider>
+        <ActivityProvider>
+          <ClassProvider>
+            <HomeworkProvider>
+              <MessageProvider>
+                <NotificationProvider>
+                  <AnnouncementProvider>
+                    <LandingPageProvider>
+                      <AppContent />
+                    </LandingPageProvider>
+                  </AnnouncementProvider>
+                </NotificationProvider>
+              </MessageProvider>
+            </HomeworkProvider>
+          </ClassProvider>
+        </ActivityProvider>
       </ThemeProvider>
     </AuthProvider>
   );

@@ -1,3 +1,4 @@
+
 export enum UserRole {
   Admin = 'admin',
   Teacher = 'teacher',
@@ -8,6 +9,8 @@ export interface StudentData {
   courses: string[];
   attendance: number; // percentage
   overallGrade: number; // percentage
+  className?: string; // e.g., "10-A"
+  rollNumber?: string;
 }
 
 export interface User {
@@ -18,10 +21,31 @@ export interface User {
   role: UserRole;
   password?: string;
   blocked?: boolean;
+  // Student specific
   studentData?: StudentData;
+  // Teacher specific
+  subjects?: string[];
+  assignedClass?: string; // Class ID if class teacher
+  // Preferences
   preferences?: {
     theme: 'light' | 'dark';
+    accentColor?: string;
   }
+}
+
+export interface ClassGroup {
+  id: string;
+  name: string; // e.g., "10-A"
+  subjects: string[]; // List of subjects taught in this class
+  classTeacherId?: string; // UID of the class teacher
+}
+
+export interface ActivityLog {
+  id: string;
+  action: string; // e.g., "Added Teacher", "Deleted Notice"
+  performedBy: string; // Admin Name
+  timestamp: string; // ISO String
+  type: 'info' | 'warning' | 'critical' | 'success';
 }
 
 export interface UploadedFile {
@@ -50,6 +74,8 @@ export interface Announcement {
   content: string;
   date: string;
   teacherName: string;
+  isPublished?: boolean;
+  expiryDate?: string;
 }
 
 export interface StudentPerformance {
@@ -73,7 +99,6 @@ export interface Message {
   status: 'sent' | 'delivered' | 'read';
 }
 
-// A new type for the admin-sent notifications system.
 export interface Notification {
   id: string;
   title: string;
@@ -90,6 +115,7 @@ export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
 export interface TextBlock {
   title: string;
   content: string;
+  isVisible?: boolean;
 }
 
 export interface Stat {
@@ -141,4 +167,10 @@ export interface HomepageContent {
   announcements: HomepageAnnouncement[];
   galleryImages: GalleryImage[];
   contactInfo: ContactInfo;
+  sectionsVisibility?: {
+      principal: boolean;
+      about: boolean;
+      gallery: boolean;
+      contact: boolean;
+  }
 }

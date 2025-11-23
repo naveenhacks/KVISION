@@ -3,8 +3,9 @@ import React, { useState, useContext, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageContext, generateConversationId } from '../../../context/MessageContext.tsx';
 import { AuthContext } from '../../../context/AuthContext.tsx';
+import { ActivityContext } from '../../../context/ActivityContext.tsx';
 import { Message, User, UserRole, UploadedFile } from '../../../types.ts';
-import { Send, ArrowLeft, MessageSquare, Trash2, Download, FileText } from 'lucide-react';
+import { Send, ArrowLeft, MessageSquare, Trash2, Download, FileText, Radio } from 'lucide-react';
 import Alert from '../../common/Alert.tsx';
 import ConfirmationModal from '../../common/ConfirmationModal.tsx';
 
@@ -32,25 +33,24 @@ const FileMessage: React.FC<{ file: UploadedFile }> = ({ file }) => {
     );
 };
 
-
 const AdminMessaging: React.FC<{
     selectedUserId: string | null;
     setSelectedUserId: (userId: string | null) => void;
 }> = ({ selectedUserId, setSelectedUserId }) => {
     const { conversations, sendMessage, deleteMessage } = useContext(MessageContext);
-    const { users } = useContext(AuthContext);
+    const { users, user: adminUser } = useContext(AuthContext);
+    const { logActivity } = useContext(ActivityContext);
     const [messageText, setMessageText] = useState('');
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [messageToDelete, setMessageToDelete] = useState<Message | null>(null);
     
+    // Broadcast State
+    const [isBroadcastMode, setIsBroadcastMode] = useState(false);
+    const [broadcastTarget, setBroadcastTarget] = useState<'all' | UserRole.Teacher | UserRole.Student>('all');
+
     const selectedUser = users.find(u => u.id === selectedUserId);
-    
-    // The ID used in the context for the conversation document
     const selectedConversationId = selectedUserId ? generateConversationId(ADMIN_MESSAGING_ID, selectedUserId) : null;
-    
-    // Find the actual conversation object from context. 
-    // NOTE: In MessageContext, conversations for Admin are loaded where 'kvision_admin_inbox' is a participant.
     const selectedConversationObj = conversations.find(c => c.id === selectedConversationId);
     const selectedMessages = selectedConversationObj?.messages || [];
 
@@ -58,9 +58,25 @@ const AdminMessaging: React.FC<{
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedMessages]);
     
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (messageText.trim() && selectedUserId) {
+        if (!messageText.trim()) return;
+
+        if (isBroadcastMode) {
+            const targets = users.filter(u => broadcastTarget === 'all' || u.role === broadcastTarget);
+            let count = 0;
+            for (const targetUser of targets) {
+                // Skip self (admin)
+                if (targetUser.role !== UserRole.Admin) {
+                     await sendMessage(ADMIN_MESSAGING_ID, targetUser.id, { type: 'text', value: messageText.trim() });
+                     count++;
+                }
+            }
+            logActivity(`Broadcasted message to ${count} users`, adminUser?.name || 'Admin', 'info');
+            setAlert({ message: `Broadcast sent to ${count} users.`, type: 'success' });
+            setMessageText('');
+            setIsBroadcastMode(false);
+        } else if (selectedUserId) {
             sendMessage(ADMIN_MESSAGING_ID, selectedUserId, { type: 'text', value: messageText.trim() });
             setMessageText('');
         }
@@ -84,7 +100,7 @@ const AdminMessaging: React.FC<{
 
     const ConversationListItem: React.FC<{ user: User, lastMessage: Message | null, isSelected: boolean }> = ({ user, lastMessage, isSelected }) => (
         <button 
-            onClick={() => setSelectedUserId(user.id)}
+            onClick={() => { setSelectedUserId(user.id); setIsBroadcastMode(false); }}
             className={`w-full text-left p-3 flex items-center space-x-3 rounded-lg transition-colors ${isSelected ? 'bg-brand-neon-purple/20' : 'hover:bg-white/5'}`}
         >
             <img src={`https://api.dicebear.com/8.x/initials/svg?seed=${user.name}`} alt={user.name} className="w-12 h-12 rounded-full flex-shrink-0" />
@@ -97,14 +113,7 @@ const AdminMessaging: React.FC<{
         </button>
     );
 
-    const studentUsers = users.filter(u => u.role === UserRole.Student);
-    
-    // Map of user IDs that have active conversations
-    const usersWithConversations = new Set(conversations.map(c => c.otherUser.id));
-    
-    // Separate active conversations from potential new ones
     const activeConversationUsers = conversations.map(c => c.otherUser);
-    const potentialNewUsers = studentUsers.filter(u => !usersWithConversations.has(u.id));
 
     return (
         <>
@@ -121,13 +130,17 @@ const AdminMessaging: React.FC<{
             />
             <div className="h-[calc(100vh-16rem)] bg-brand-light-blue rounded-2xl border border-white/10 flex overflow-hidden">
                 <div className={`w-full md:w-1/3 border-r border-white/10 flex flex-col transition-transform duration-300 ${selectedUserId && 'hidden md:flex'}`}>
-                    <div className="p-4 border-b border-white/10">
-                        <h2 className="text-2xl font-bold text-white">Student Messages</h2>
+                    <div className="p-4 border-b border-white/10 space-y-3">
+                        <h2 className="text-2xl font-bold text-white">Inbox</h2>
+                        <button 
+                            onClick={() => { setIsBroadcastMode(true); setSelectedUserId(null); }}
+                            className={`w-full flex items-center justify-center space-x-2 p-2 rounded-lg transition-colors border ${isBroadcastMode ? 'bg-brand-neon-purple text-white border-brand-neon-purple' : 'bg-transparent text-brand-silver-gray border-white/10 hover:bg-white/5'}`}
+                        >
+                            <Radio size={18} />
+                            <span>Broadcast Message</span>
+                        </button>
                     </div>
                     <div className="flex-grow overflow-y-auto p-2">
-                        {activeConversationUsers.length > 0 && (
-                             <p className="px-3 py-2 text-xs font-semibold text-brand-silver-gray uppercase">Active Chats</p>
-                        )}
                         {conversations.map(({ otherUser, messages }) => (
                             <ConversationListItem 
                                 key={otherUser.id} 
@@ -136,23 +149,45 @@ const AdminMessaging: React.FC<{
                                 isSelected={selectedUserId === otherUser.id} 
                             />
                         ))}
-                         
-                         {potentialNewUsers.length > 0 && (
-                            <p className="px-3 py-2 mt-4 text-xs font-semibold text-brand-silver-gray uppercase">Start a new Chat</p>
-                         )}
-                         {potentialNewUsers.map(user => (
-                             <ConversationListItem 
-                                key={user.id} 
-                                user={user} 
-                                lastMessage={null} 
-                                isSelected={selectedUserId === user.id} 
-                            />
-                         ))}
                     </div>
                 </div>
 
-                <div className={`w-full md:w-2/3 flex flex-col transition-transform duration-300 ${!selectedUserId && 'hidden md:flex'}`}>
-                    {selectedUser ? (
+                <div className={`w-full md:w-2/3 flex flex-col transition-transform duration-300 ${!selectedUserId && !isBroadcastMode && 'hidden md:flex'}`}>
+                    {isBroadcastMode ? (
+                        <div className="flex-grow flex flex-col p-6">
+                            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2"><Radio /> Broadcast Message</h2>
+                            <div className="bg-white/5 p-6 rounded-xl border border-white/10 flex-grow flex flex-col space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-brand-silver-gray mb-2">Target Audience</label>
+                                    <div className="flex space-x-4">
+                                        {['all', UserRole.Teacher, UserRole.Student].map(role => (
+                                            <button 
+                                                key={role}
+                                                onClick={() => setBroadcastTarget(role as any)}
+                                                className={`px-4 py-2 rounded-full capitalize text-sm ${broadcastTarget === role ? 'bg-brand-neon-purple text-white' : 'bg-white/10 text-brand-silver-gray'}`}
+                                            >
+                                                {role}s
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex-grow">
+                                    <label className="block text-sm font-medium text-brand-silver-gray mb-2">Message</label>
+                                    <textarea 
+                                        value={messageText}
+                                        onChange={e => setMessageText(e.target.value)}
+                                        className="w-full h-full input-field resize-none p-4"
+                                        placeholder="Type your broadcast message here..."
+                                    />
+                                </div>
+                                <div className="flex justify-end">
+                                    <button onClick={handleSendMessage} className="bg-brand-neon-purple text-white px-8 py-3 rounded-lg hover:bg-opacity-80 flex items-center gap-2">
+                                        <Send size={18} /> Send Broadcast
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : selectedUser ? (
                         <>
                             <div className="p-4 border-b border-white/10 flex items-center space-x-3">
                                 <button onClick={() => setSelectedUserId(null)} className="md:hidden p-2 rounded-full hover:bg-white/10">
@@ -161,7 +196,7 @@ const AdminMessaging: React.FC<{
                                  <img src={`https://api.dicebear.com/8.x/initials/svg?seed=${selectedUser.name}`} alt={selectedUser.name} className="w-10 h-10 rounded-full" />
                                  <div>
                                     <h3 className="font-bold text-white">{selectedUser.name}</h3>
-                                    <p className="text-xs text-green-400">Online</p>
+                                    <p className="text-xs text-brand-silver-gray capitalize">{selectedUser.role}</p>
                                  </div>
                             </div>
                             <div className="flex-grow overflow-y-auto p-4 space-y-4">
@@ -176,9 +211,6 @@ const AdminMessaging: React.FC<{
                                             className={`group flex items-end gap-2 ${msg.senderId === ADMIN_MESSAGING_ID ? 'justify-end' : 'justify-start'}`}
                                         >
                                             <div className={`flex items-center gap-2 ${msg.senderId === ADMIN_MESSAGING_ID ? 'flex-row-reverse' : 'flex-row'}`}>
-                                                {msg.senderId !== ADMIN_MESSAGING_ID && (
-                                                    <img src={`https://api.dicebear.com/8.x/initials/svg?seed=${selectedUser.name}`} alt="avatar" className="w-6 h-6 rounded-full self-start mt-1" />
-                                                )}
                                                 <div className={`max-w-xs md:max-w-md rounded-2xl ${msg.senderId === ADMIN_MESSAGING_ID ? 'bg-brand-neon-purple text-white rounded-br-none' : 'bg-white/10 text-white rounded-bl-none'}`}>
                                                     {msg.content.type === 'text' ? (
                                                         <p className="text-sm p-3 break-words">{msg.content.value}</p>
@@ -202,9 +234,9 @@ const AdminMessaging: React.FC<{
                                         value={messageText}
                                         onChange={(e) => setMessageText(e.target.value)}
                                         placeholder="Type a message..."
-                                        className="flex-grow bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-light-purple transition-all"
+                                        className="flex-grow input-field"
                                     />
-                                    <button type="submit" className="bg-brand-neon-purple p-3 rounded-lg text-white disabled:bg-opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 transition-all aspect-square">
+                                    <button type="submit" className="bg-brand-neon-purple p-3 rounded-lg text-white hover:bg-opacity-80">
                                         <Send size={20} />
                                     </button>
                                 </form>
@@ -213,8 +245,8 @@ const AdminMessaging: React.FC<{
                     ) : (
                         <div className="flex-grow flex flex-col items-center justify-center text-center text-brand-silver-gray p-4">
                              <MessageSquare size={64} className="mb-4 opacity-50"/>
-                             <h2 className="text-xl font-bold text-white">Select a conversation</h2>
-                             <p>Choose a student from the list to start chatting.</p>
+                             <h2 className="text-xl font-bold text-white">Messaging Center</h2>
+                             <p>Select a user or start a broadcast.</p>
                         </div>
                     )}
                 </div>

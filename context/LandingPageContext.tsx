@@ -48,8 +48,11 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
                 setContent(docSnap.data() as HomepageContent);
             } else {
                 // Initialize if doesn't exist
-                setDoc(docRef, getDefaultContent());
+                setDoc(docRef, getDefaultContent()).catch(err => console.error("Error init homepage:", err));
             }
+        }, (error) => {
+            console.error("Error fetching homepage content:", error);
+            // Fallback to default/static content if permissions denied
         });
         return () => unsubscribe();
     }, []);

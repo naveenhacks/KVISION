@@ -1,7 +1,8 @@
-import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useState, ReactNode, useCallback, useMemo, useEffect, useContext } from 'react';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, query, orderBy } from "firebase/firestore";
 import { db } from '../firebaseConfig.ts';
 import { Notification, UserRole } from '../types.ts';
+import { AuthContext } from './AuthContext.tsx';
 
 interface NotificationContextType {
     notifications: Notification[];
@@ -20,8 +21,14 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
+    const { user } = useContext(AuthContext);
 
     useEffect(() => {
+        if (!user) {
+            setNotifications([]);
+            return;
+        }
+
         const q = query(collection(db, "notifications"), orderBy("date", "desc"));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const list = snapshot.docs.map(doc => ({
@@ -29,9 +36,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
                 ...doc.data()
             } as Notification));
             setNotifications(list);
+        }, (error) => {
+            console.error("Error fetching notifications:", error);
         });
         return () => unsubscribe();
-    }, []);
+    }, [user]);
 
     const addNotification = useCallback(async (notification: Omit<Notification, 'id' | 'date' | 'readBy'>) => {
         await addDoc(collection(db, "notifications"), {

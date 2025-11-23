@@ -1,5 +1,5 @@
 import React, { createContext, useState, ReactNode, useCallback, useMemo, useContext, useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, updateDoc, arrayUnion, getDoc, query, where } from "firebase/firestore";
 import { db } from '../firebaseConfig.ts';
 import { Message, User, UserRole } from '../types.ts';
 import { AuthContext } from './AuthContext.tsx';
@@ -44,9 +44,20 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
             return;
         }
 
-        const unsubscribe = onSnapshot(collection(db, "conversations"), (snapshot) => {
+        // Determine the ID used for messaging (Admin uses a virtual ID)
+        const messageUserId = user.role === UserRole.Admin ? ADMIN_VIRTUAL_USER_ID : user.id;
+
+        // Query only conversations where the user is a participant
+        const q = query(
+            collection(db, "conversations"), 
+            where("participants", "array-contains", messageUserId)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
             const convos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             setRawConversations(convos);
+        }, (error) => {
+            console.error("Error fetching conversations:", error);
         });
         return () => unsubscribe();
     }, [user]);
@@ -141,7 +152,8 @@ export const MessageProvider: React.FC<MessageProviderProps> = ({ children }) =>
                 ? { ...msg, status: 'read' as const } 
                 : msg
             );
-            // Only update if changes were made to avoid loops
+            
+            // Only update if changes were made to avoid loops (comparing stringified to handle deep object comparison simply)
             if (JSON.stringify(data.messages) !== JSON.stringify(updatedMessages)) {
                 await updateDoc(convoRef, { messages: updatedMessages });
             }
